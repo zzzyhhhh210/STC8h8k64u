@@ -1,0 +1,1 @@
+"Usart.c" OPTIMIZE (8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\Usart.lst) OBJECT(.\Objects\Usart.obj)

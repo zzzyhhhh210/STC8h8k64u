@@ -1,0 +1,12 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\Delay.obj",
+".\Objects\LED.obj",
+".\Objects\Timer.obj",
+".\Objects\Nix.obj",
+".\Objects\Key.obj",
+".\Objects\Usart.obj",
+".\Objects\LCD1602.obj" 
+TO ".\Objects\project" 
+PRINT(".\Listings\project.m51") RAMSIZE(256) 
+DISABLEWARNING (16) 
