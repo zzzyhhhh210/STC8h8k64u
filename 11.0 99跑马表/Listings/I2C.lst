@@ -1,0 +1,141 @@
+C51 COMPILER V9.54   I2C                                                                   04/11/2026 01:20:39 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE I2C
+OBJECT MODULE PLACED IN .\Objects\I2C.obj
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE I2C.c OPTIMIZE(8,SPEED) BROWSE DEBUG O
+                    -BJECTEXTEND PRINT(.\Listings\I2C.lst) OBJECT(.\Objects\I2C.obj)
+
+line level    source
+
+   1          #include "I2C.h"
+   2          
+   3          sbit SDA = P1^4;
+   4          sbit SCL = P1^5;
+   5          
+   6          bit busy;
+   7          
+   8          void I2C_Isr() interrupt 24
+   9          {
+  10   1              if(I2CMSST & 0x40)
+  11   1              {
+  12   2                      I2CMSST &= ~0x40;// ??????
+  13   2                      // ?????? ACK (0: ACK, 1: NAK)
+  14   2              // ??:STC8H I2C ?????,I2CMSST ??????,??????
+  15   2              // ???????????,????????busy
+  16   2                      busy = 0;
+  17   2              }
+  18   1      }
+  19          
+  20          void I2C_Init(void)
+  21          {
+  22   1              P_SW2|=0x90;//'?????XFR??û???????ù?? 90
+  23   1              
+  24   1              P0M0 = 0X00;
+  25   1              P0M1 = 0X00;
+  26   1              P1M0 = 0X00;
+  27   1              P1M1 = 0X00;
+  28   1              P2M0 = 0X00;
+  29   1              P2M1 = 0X00;
+  30   1              P3M0 = 0X00;
+  31   1              P3M1 = 0X00;
+  32   1              P4M0 = 0X00;
+  33   1              P4M1 = 0X00;
+  34   1              P5M0 = 0X00;
+  35   1              P5M1 = 0X00;
+  36   1              P6M0 = 0X00;
+  37   1              P6M1 = 0X00;
+  38   1              
+  39   1              I2CCFG = 0xE0;// ?? I2C ????,????
+  40   1              I2CMSST = 0x00;
+  41   1              EA = 1;
+  42   1              
+  43   1              
+  44   1      }
+  45          
+  46          void I2C_Start()
+  47          {
+  48   1              busy = 1;
+  49   1              I2CMSCR = 0x81;//????START????
+  50   1              while(busy);
+  51   1      }
+  52          
+  53          void I2C_SendData(char dat)
+  54          {
+C51 COMPILER V9.54   I2C                                                                   04/11/2026 01:20:39 PAGE 2   
+
+  55   1              I2CTXD = dat;//???????????????
+  56   1              busy = 1;
+  57   1              I2CMSCR = 0x82;//????SEND????
+  58   1              while(busy);
+  59   1      }
+  60          
+  61          void I2C_RecvACK()
+  62          {
+  63   1              busy = 1;
+  64   1              I2CMSCR = 0x83;//?????ACK????
+  65   1              while(busy);
+  66   1      }
+  67          
+  68          uint8_t I2C_RecvData()
+  69          {
+  70   1              busy = 1;
+  71   1              I2CMSCR = 0x84;//????RECV????
+  72   1              while(busy);
+  73   1              return I2CRXD;
+  74   1      }
+  75          
+  76          void I2C_SendACK()
+  77          {
+  78   1              I2CMSST = 0x00;//????ACK?z?
+  79   1              busy = 1;
+  80   1              I2CMSCR = 0x85;//????ACK????
+  81   1              while(busy);
+  82   1      }
+  83          
+  84          void I2C_SendNAK()
+  85          {
+  86   1              I2CMSST = 0x01;//????NAK?z?
+  87   1              busy = 1;
+  88   1              I2CMSCR = 0x85;//????ACK????
+  89   1              while(busy);
+  90   1      }
+  91          
+  92          void I2C_Stop()
+  93          {
+  94   1              busy = 1;
+  95   1              I2CMSCR = 0x86;//????STOP????
+  96   1              while(busy);
+  97   1      }
+  98          
+  99          void I2C_Delay()
+ 100          {
+ 101   1              int i;
+ 102   1              
+ 103   1              for(i=0;i<3000;i++)
+ 104   1              {
+ 105   2                      _nop_();
+ 106   2                      _nop_();
+ 107   2                      _nop_();
+ 108   2                      _nop_();
+ 109   2              }
+ 110   1      }
+ 111          
+ 112          
+ 113          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V9.54   I2C                                                                   04/11/2026 01:20:39 PAGE 3   
+
+   CODE SIZE        =    196    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
