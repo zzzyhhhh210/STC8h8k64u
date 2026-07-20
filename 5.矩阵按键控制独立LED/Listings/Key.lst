@@ -1,0 +1,107 @@
+C51 COMPILER V9.54   KEY                                                                   05/17/2026 17:22:42 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE KEY
+OBJECT MODULE PLACED IN .\Objects\Key.obj
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE Key.c OPTIMIZE(8,SPEED) BROWSE DEBUG O
+                    -BJECTEXTEND PRINT(.\Listings\Key.lst) OBJECT(.\Objects\Key.obj)
+
+line level    source
+
+   1          #include "Key.h"
+   2          
+   3          void Key_Init(void)
+   4          {
+   5   1              P0M0=0x00;
+   6   1              P0M1=0x00;//工作模式，双向
+   7   1              
+   8   1      }
+   9          
+  10          
+  11          unsigned char Key_scan(void)//2行4列
+  12          {
+  13   1              unsigned char row, column, key_volume;
+  14   1              Key_Init();
+  15   1              P0 = 0x0F;  //列线P0.0~P0.3=1,行线P0.6~P0.7=1(未选中)
+  16   1      //      P7=0x7F;
+  17   1                      if(P0 != 0x0F)//按键是否按下（拉低）
+  18   1                      {
+  19   2                              Delay_ms(10);//消抖：硬件消抖加电容等，软件消抖加延时跳过
+  20   2                              if(P0 != 0x0F)//按键是否按下
+  21   2                              {
+  22   3                                      //1.行扫描
+  23   3      
+  24   3                                      //第0行扫描，拉低P0.6(P0=0xBF=1011 1111)
+  25   3                                      P0 = 0xBF;                              
+  26   3                                      if(P0 != 0xBF)
+  27   3                                      {
+  28   4                                              row = 0;//第0行有键被按下
+  29   4                                              goto column_scan;
+  30   4                                      }
+  31   3      
+  32   3      
+  33   3                                      //第1行扫描，拉低P0.7(P0=0x7F=0111 1111)
+  34   3                                      P0 = 0x7F;
+  35   3                                      Delay_ms(10);//电平稳定延时,不加不行
+  36   3                                      if(P0 != 0x7F)
+  37   3                                      {
+  38   4                                              row = 1;
+  39   4                                              goto column_scan;
+  40   4                                      }
+  41   3                                      
+  42   3                                      //2.列扫描
+  43   3                                      column_scan:
+  44   3                                                              if ((P0&0x01) == 0) column = 0;         //P0.0 拉低 -> 第0列 1011 1111 ---> 1011 1101 &0000 0010 P0=0xBF
+  45   3                                                              else if ((P0&0x02) == 0) column = 1;    //P0.1 拉低 -> 第1列
+  46   3                                                              else if ((P0&0x04) == 0) column = 2;    //P0.2 拉低 -> 第2列
+  47   3                                                              else if ((P0&0x08) == 0) column = 3;                                    //P0.3 拉低 -> 第3列
+  48   3                                                      
+  49   3                                                              //计算按键值
+  50   3                                                              key_volume = row*4+column;
+  51   3                                                      
+  52   3                                                              //等待按键释放（避免长按重复触发）
+  53   3                                                              while (P0 != (row == 0 ? 0xBF : 0x7F));
+  54   3                                                              Delay_ms(10);//释放消抖
+C51 COMPILER V9.54   KEY                                                                   05/17/2026 17:22:42 PAGE 2   
+
+  55   3      
+  56   3                                                              return (key_volume);
+  57   3      
+  58   3                              }
+  59   2                      }
+  60   1                      else return (16);//无按键按下
+  61   1                      P0=0xFF;
+  62   1      }
+  63          
+  64          
+  65          void Key_Num_test(void)
+  66          {
+  67   1              unsigned char KeyNum;
+  68   1              Key_Init();
+  69   1              while(1)
+  70   1                      {       
+  71   2                              KeyNum = 0;
+  72   2                              KeyNum=Key_scan();
+  73   2                              if(KeyNum != 16)
+  74   2                              {
+  75   3                                      Nix_Num(8,KeyNum);
+  76   3                              }
+  77   2                              Delay_ms(100);
+  78   2                      }
+  79   1      
+  80   1      }
+*** WARNING C291 IN LINE 62 OF Key.c: not every exit path returns a value
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    177    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
