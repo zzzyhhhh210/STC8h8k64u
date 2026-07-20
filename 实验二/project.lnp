@@ -1,0 +1,11 @@
+"main.obj",
+"Delay.obj",
+"Timer.obj",
+"Nix.obj",
+"I2C.obj",
+"EEPROM.obj",
+"Key.obj",
+"LED.obj" 
+TO "project" 
+PRINT(".\Listings\project.m51") RAMSIZE(256) 
+DISABLEWARNING (16) 

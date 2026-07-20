@@ -1,0 +1,106 @@
+C51 COMPILER V9.54   KEY                                                                   05/27/2026 08:28:37 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE KEY
+OBJECT MODULE PLACED IN Key.OBJ
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE Key.c LARGE OPTIMIZE(8,SPEED) BROWSE D
+                    -EBUG OBJECTEXTEND PRINT(.\Listings\Key.lst)
+
+line level    source
+
+   1          #include "Key.h"
+   2          extern uint8_t led_lec[8];
+   3          extern uint8_t key4_num;
+   4          extern unsigned char code LedChar[];
+   5          extern bit flag, flash_state, mode, led_f;
+   6          #define ROW_0 0xBF
+   7          #define ROW_1 0x7F
+   8          
+   9          void Key_Init(void)
+  10          {
+  11   1              P0M0=0x00;
+  12   1              P0M1=0x00;//工作模式，双向       
+  13   1      }
+  14          
+  15          unsigned char Key_scan(void)
+  16          {
+  17   1              unsigned char row, column, key_volume;
+  18   1              P0 = 0x0F;
+  19   1              if(P0 != 0x0F)
+  20   1              {
+  21   2                      Delay_ms(10);
+  22   2                      if(P0 != 0x0F)
+  23   2                      {
+  24   3                              // 行扫描
+  25   3                              P0 = ROW_0;
+  26   3                              Delay_ms(1);
+  27   3                              if(P0 != ROW_0)
+  28   3                              {
+  29   4                                      row = 0;
+  30   4                              }
+  31   3                              else
+  32   3                              {
+  33   4                                      P0 = ROW_1;
+  34   4                                      Delay_ms(1);
+  35   4                                      if(P0 != ROW_1)
+  36   4                                      {
+  37   5                                              row = 1;
+  38   5                                      }
+  39   4                                      else
+  40   4                                      {
+  41   5                                              // 未检测到按键行，返回无效值
+  42   5                                              P0 = 0xFF;
+  43   5                                              return 16;
+  44   5                                      }
+  45   4                              }
+  46   3      
+  47   3                              // 列扫描
+  48   3                              if((P0 & 0x01) == 0) column = 0;
+  49   3                              else if((P0 & 0x02) == 0) column = 1;
+  50   3                              else if((P0 & 0x04) == 0) column = 2;
+  51   3                              else column = 3; 
+  52   3      
+  53   3                              // 计算按键值
+  54   3                              key_volume = row * 4 + column;
+C51 COMPILER V9.54   KEY                                                                   05/27/2026 08:28:37 PAGE 2   
+
+  55   3                              
+  56   3                              // 边沿处理: 非设置模式下S3按下显示亮度等级
+  57   3                              
+  58   3                              if(key_volume == 3 && mode == close_mode)
+  59   3                              {
+  60   4                                      led_f = 1;
+  61   4                                      if(key4_num != 0)
+  62   4                                              led_lec[7] = LedChar[key4_num];
+  63   4                                      else
+  64   4                                              led_lec[7] = LedChar[4];
+  65   4                                      Seg_Run();
+  66   4                              }
+  67   3                              // 等待按键释放(根据行号判断松开值)
+  68   3                              if(row == 0)
+  69   3                                      while(P0 != ROW_0);   // row0松开→P0=0xBF
+  70   3                              else
+  71   3                                      while(P0 != ROW_1);   // row1松开→P0=0x7F
+  72   3                              led_f = 0;
+  73   3                              
+  74   3                              return (key_volume);
+  75   3                      }
+  76   2                      return 16;
+  77   2              }
+  78   1              else
+  79   1                      return 16; // 无按键按下
+  80   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    202    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----       3
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

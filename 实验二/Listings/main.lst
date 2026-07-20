@@ -1,0 +1,390 @@
+C51 COMPILER V9.54   MAIN                                                                  05/27/2026 08:28:36 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE main.c LARGE OPTIMIZE(8,SPEED) BROWSE 
+                    -DEBUG OBJECTEXTEND PRINT(.\Listings\main.lst)
+
+line level    source
+
+   1          #include "main.h"
+   2          
+   3          // ================= 全局变量定义 =================
+   4          //定时器
+   5          uint16_t cnt = 0;           // LED流转计数器(单位:0.1ms)
+   6          uint16_t blink_cnt = 0;     // 闪烁计数器(0.8s)
+   7          uint8_t pwm_cnt = 0;        // PWM计数器(0-199, 20ms周期)
+   8          uint8_t bright_tab[] = {50, 100, 150, 200};  // 4档亮度PWM阈值
+   9          //s1s4模式
+  10          uint8_t key1_num = 0;        // 设置状态: 0=全灭, 1=模式编号, 2=流转间隔
+  11          uint8_t key4_num = 1;       // 亮度等级 1~4(Key.c引用)
+  12          //led
+  13          uint8_t Set_led_mode = 1;   // 设置运行模式 1
+  14          uint8_t led_mode = 1;       // 默认模式1， 1~4
+  15          uint8_t index = 0;          // LED流转索引
+  16          uint8_t P6_OUT = 0xFF;      // LED输出锁存值
+  17          
+  18          // EEPROM: 各模式流转间隔(单位:100ms, 范围4~12即400~1200ms)
+  19          unsigned char time = 4;
+  20          // 数码管段码表(共阳极)
+  21          unsigned char code LedChar[] = {
+  22              0xC0,   // 0
+  23              0xF9,   // 1
+  24              0xA4,   // 2
+  25              0xB0,   // 3
+  26              0x99,   // 4
+  27              0x92,   // 5
+  28              0x82,   // 6
+  29              0xF8,   // 7
+  30              0x80,   // 8
+  31              0x90,   // 9
+  32              0xBF,   // 10: '-'
+  33              0xFF,   // 11: 熄灭
+  34          };
+  35          // 显示缓存
+  36          uint8_t LedBuff[8];                         // 数码管段码缓存(直接段码值)
+  37          uint8_t set_char[8];                        // 设置界面段码
+  38          uint8_t led_lec[8] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};  // Key.c引用
+  39          // 标志位
+  40          bit flag = 0;           // 启动/停止
+  41          bit flash_state = 0;    // 闪烁状态(0.8s翻转)
+  42          //#define close_mode  0
+  43          //#define set_mode  1
+  44          bit mode = close_mode;  // 默认为关闭数码管
+  45          bit led_f = 0;          // S3按下显示亮度(Key.c引用)
+  46          // ================= 函数声明 =================
+  47          void Led_Run(void);
+  48          void Key_Run(void);
+  49          void Seg_Run(void);
+  50          void Update_Set_Char(void);
+  51          void Save_Settings(void);
+  52          void Load_Settings(void);
+  53          // ================= 主函数 =================
+  54          void main(void)
+C51 COMPILER V9.54   MAIN                                                                  05/27/2026 08:28:36 PAGE 2   
+
+  55          {
+  56   1          // 初始化
+  57   1          I2C_Init();
+  58   1          Key_Init();
+  59   1          LED_Init();
+  60   1          Nix_Init();
+  61   1          Timer0_Init();
+  62   1      
+  63   1          // 从EEPROM加载保存的间隔值
+  64   1          Load_Settings();
+  65   1      
+  66   1          // 初始: 数码管全灭
+  67   1          Seg_Run();
+  68   1      
+  69   1          while(1)
+  70   1          {
+  71   2              Key_Run();
+  72   2              // 刷新显示状态(非设置模式下,处理S3松手后熄灭等场景)
+  73   2              if(mode == close_mode)
+  74   2                  Seg_Run();
+  75   2          }
+  76   1      }
+  77          
+  78          // ================= 定时器中断 (100us) =================
+  79          // 功能: LED流转计时 + 0.8s闪烁 + PWM亮度 + SegScan
+  80          void timer0() interrupt 1
+  81          {
+  82   1          static uint8_t seg_pos = 0;
+  83   1          // ---------- 1. LED流转计数器 ----------
+  84   1          cnt++;
+  85   1          if(cnt >= time * 1000)  // 转换为0.1ms单位
+  86   1          {
+  87   2              cnt = 0;
+  88   2              if(flag == 1)//启动
+  89   2                  Led_Run();      // 执行一次LED移位
+  90   2          }
+  91   1          // ---------- 2. 闪烁计数器(0.8s = 8000 * 0.1ms) ----------
+  92   1          blink_cnt++;
+  93   1          if(blink_cnt >= 8000)
+  94   1          {
+  95   2              blink_cnt = 0;
+  96   2              flash_state = ~flash_state;      // 翻转闪烁状态
+  97   2              if(set_mode == 1)
+  98   2                  Seg_Run();                  // 刷新显示(实现闪烁)
+  99   2          }
+ 100   1          // ---------- 3. PWM亮度控制 + SegScan(20ms周期) ----------
+ 101   1          pwm_cnt++;
+ 102   1          if(pwm_cnt >= 200)  pwm_cnt = 0;
+ 103   1          if(pwm_cnt <= 30)
+ 104   1          {
+ 105   2              // ===== 数码管扫描时间(3ms/20ms) =====
+ 106   2              P40 = 1;                        // 关闭LED电源
+ 107   2              P7 = 0xFF;                      // 消影
+ 108   2              P6 = LedBuff[seg_pos];          // 输出段码
+ 109   2              P7 = ~(0x01 << seg_pos);        // 位选
+ 110   2              seg_pos = (seg_pos + 1) % 8;    // 切换下一位
+ 111   2          }
+ 112   1          else if(pwm_cnt < bright_tab[key4_num - 1])
+ 113   1          {
+ 114   2              // ===== LED点亮时间 =====
+ 115   2              P7 = 0xFF;      // 关闭数码管位选
+ 116   2              P40 = 0;        // 开启LED电源
+C51 COMPILER V9.54   MAIN                                                                  05/27/2026 08:28:36 PAGE 3   
+
+ 117   2              P6 = P6_OUT;    // 输出LED灯状态
+ 118   2          }
+ 119   1          else
+ 120   1          {
+ 121   2              // ===== LED熄灭时间 =====
+ 122   2              P40 = 1;        // 关闭LED电源
+ 123   2          }
+ 124   1      }
+ 125          // ================= 按键处理函数 =================
+ 126          void Key_Run(void)
+ 127          {
+ 128   1              uint8_t key;
+ 129   1          key = Key_scan();
+ 130   1          switch(key)
+ 131   1          {
+ 132   2              // ========== S0: 启动/停止 ==========
+ 133   2              case 0:
+ 134   2                  flag = ~flag;break;
+ 135   2              // ========== S1: 设置(循环: 全灭→模式→间隔→全灭) ==========
+ 136   2              case 1:
+ 137   2                              Set_led_mode = led_mode;//同步当前模式
+ 138   2                              key1_num++;mode = set_mode;
+ 139   2                  Update_Set_Char();      // 更新设置界面内容
+ 140   2                  Seg_Run();             // 刷新显示
+ 141   2                  if(key1_num >= 3)
+ 142   2                  {
+ 143   3                      key1_num = 0;
+ 144   3                                      mode = close_mode;
+ 145   3                                      
+ 146   3                      Seg_Run();          // 全灭
+ 147   3                      Save_Settings();    // 退出时保存到EEPROM
+ 148   3                  }
+ 149   2                  break;
+ 150   2              // ========== S2: 加 ==========
+ 151   2              case 2:
+ 152   2                  if(mode == close_mode) break;
+ 153   2                  if(key1_num == 1 && mode == set_mode)             // 模式编号+1
+ 154   2                  {
+ 155   3                      Set_led_mode++;
+ 156   3                      if(Set_led_mode > 4)Set_led_mode = 1;
+ 157   3                  }
+ 158   2                  else if(key1_num == 2)         // 间隔+100ms(上限1200ms)
+ 159   2                  {
+ 160   3                      if(time < 12)
+ 161   3                      time++;
+ 162   3                  }
+ 163   2                  Update_Set_Char();
+ 164   2                  Seg_Run();
+ 165   2                  break;
+ 166   2              // ========== S3: 减(=在设置模式) / 显示亮度(=在非设置模式) ==========
+ 167   2              case 3:
+ 168   2                  if(mode == set_mode)
+ 169   2                  {
+ 170   3                      if(key1_num == 1)             // 模式编号-1
+ 171   3                      {
+ 172   4                          Set_led_mode--;
+ 173   4                          if(Set_led_mode < 1) Set_led_mode = 4;
+ 174   4                      }
+ 175   3                      else if(key1_num == 2)         // 间隔-100ms(下限400ms)
+ 176   3                      {
+ 177   4                          if(time > 4)
+ 178   4                              time--;
+C51 COMPILER V9.54   MAIN                                                                  05/27/2026 08:28:36 PAGE 4   
+
+ 179   4                      }
+ 180   3                      Update_Set_Char();
+ 181   3                      Seg_Run();
+ 182   3                  }
+ 183   2                  // 非设置模式: Key_scan已设置led_f=1并调用Seg_Run
+ 184   2                  // 松手后led_f=0, 下次主循环Key_Run会刷新
+ 185   2                  break;
+ 186   2              // ========== S4: 亮度等级控制(1→2→3→4→1) ==========
+ 187   2              case 4:
+ 188   2                  key4_num++;
+ 189   2                  if(key4_num > 4) key4_num = 1;
+ 190   2                  break;
+ 191   2              default:
+ 192   2                  break;
+ 193   2          }
+ 194   1      }
+ 195          // ================= 更新设置界面显示缓存 =================
+ 196          void Update_Set_Char(void)
+ 197          {
+ 198   1          uint16_t val;
+ 199   1          uint8_t i;
+ 200   1              val = time * 100;     // 转为实际ms值默认，400==>4
+ 201   1      
+ 202   1              // 状态1: 显示运行模式编号
+ 203   1          // 格式: "- [mode] -    [百]  [十]  [个]"
+ 204   1              //问题2：数码管显示3位，当val>900时，显示错乱
+ 205   1              //解决方法：分别在Update_Set_Char();设置缓存与Seg_Run();闪烁的添加判断时间的大小
+ 206   1          if(key1_num == 1)
+ 207   1          {
+ 208   2             
+ 209   2              for(i = 0; i < 8; i++)
+ 210   2              set_char[i] = LedChar[11];          // 默认熄灭
+ 211   2      
+ 212   2              set_char[7] = LedChar[10];              // '-'
+ 213   2              set_char[6] = LedChar[Set_led_mode];        // 模式编号
+ 214   2              set_char[5] = LedChar[10];              // '-'
+ 215   2                      
+ 216   2                      
+ 217   2                      if(time<10){
+ 218   3              set_char[2] = LedChar[val / 100];        // 百位
+ 219   3              set_char[1] = LedChar[val / 10 % 10];   // 十位
+ 220   3                      set_char[0] = LedChar[val % 10];        // 个位
+ 221   3      }
+ 222   2                      else if(time>9&&time<13){
+ 223   3                      set_char[3] = LedChar[val / 1000];        // 千位
+ 224   3              set_char[2] = LedChar[val / 100% 10];        // 百位
+ 225   3              set_char[1] = LedChar[val / 10 % 10];   // 十位
+ 226   3                      set_char[0] = LedChar[val % 10];        // 个位
+ 227   3      }
+ 228   2          }
+ 229   1              // 状态2: 显示流转间隔(ms)
+ 230   1          // 格式: "- [mode] -    [百]  [十]  [个]"
+ 231   1          else if(key1_num == 2)
+ 232   1          {
+ 233   2                   
+ 234   2              for(i = 0; i < 8; i++)
+ 235   2              set_char[i] = LedChar[11];          // 默认熄灭
+ 236   2      
+ 237   2                      set_char[7] = LedChar[10];              // '-'
+ 238   2              set_char[6] = LedChar[Set_led_mode];        // 模式编号
+ 239   2              set_char[5] = LedChar[10];              // '-'
+ 240   2              
+C51 COMPILER V9.54   MAIN                                                                  05/27/2026 08:28:36 PAGE 5   
+
+ 241   2                      if(time<10){
+ 242   3              set_char[2] = LedChar[val / 100];        // 百位
+ 243   3              set_char[1] = LedChar[val / 10 % 10];   // 十位
+ 244   3                      set_char[0] = LedChar[val % 10];        // 个位
+ 245   3      }
+ 246   2                      else if(time>9&&time<13){
+ 247   3                      set_char[3] = LedChar[val / 1000];        // 千位
+ 248   3              set_char[2] = LedChar[val / 100% 10];        // 百位
+ 249   3              set_char[1] = LedChar[val / 10 % 10];   // 十位
+ 250   3                      set_char[0] = LedChar[val % 10];        // 个位
+ 251   3      }
+ 252   2      
+ 253   2          }
+ 254   1      }
+ 255          // ================= 数码管显示刷新 =================
+ 256          void Seg_Run(void)
+ 257          {
+ 258   1          uint8_t i;
+ 259   1          // 非设置模式下 S3 按住: 显示亮度等级
+ 260   1          // 格式: "         - [level]"
+ 261   1          if(led_f == 1 && mode == close_mode && key1_num == 0)
+ 262   1          {
+ 263   2              for(i = 0; i < 6; i++)
+ 264   2              LedBuff[i] = LedChar[11];            // '熄灭'
+ 265   2              LedBuff[1] = LedChar[10];               // '-'
+ 266   2              LedBuff[0] = LedChar[key4_num];         // 亮度等级(1~4)
+ 267   2          }
+ 268   1          // 设置模式
+ 269   1          else if(mode == set_mode)
+ 270   1          {
+ 271   2              // 填入完整数据
+ 272   2              for(i = 0; i < 8; i++)
+ 273   2                  LedBuff[i] = set_char[i];
+ 274   2              // 闪烁: flash_state=1时熄灭当前选中单元
+ 275   2              if(flash_state == 1)
+ 276   2              {
+ 277   3                  if(key1_num == 1)//运行模式
+ 278   3                  {
+ 279   4                      LedBuff[7] = LedChar[11];       // 熄灭模式编号单元
+ 280   4                                      LedBuff[6] = LedChar[11];
+ 281   4                                      LedBuff[5] = LedChar[11];
+ 282   4                  }   
+ 283   3                  if(key1_num == 2)
+ 284   3                  {
+ 285   4                                      if(time<10){
+ 286   5                      LedBuff[2] = LedChar[11];       // 熄灭间隔值单元(百十个位)
+ 287   5                      LedBuff[1] = LedChar[11];
+ 288   5                      LedBuff[0] = LedChar[11];
+ 289   5                  }
+ 290   4                              else if(time>9&&time<13){
+ 291   5                                      LedBuff[3] = LedChar[11];               // 熄灭间隔值单元(千百十个位)
+ 292   5                      LedBuff[2] = LedChar[11];       
+ 293   5                      LedBuff[1] = LedChar[11];
+ 294   5                      LedBuff[0] = LedChar[11];
+ 295   5                  }
+ 296   4                              }
+ 297   3              }
+ 298   2          }
+ 299   1          // 默认: 全灭
+ 300   1          else
+ 301   1          {
+ 302   2              for(i = 0; i < 8; i++)
+C51 COMPILER V9.54   MAIN                                                                  05/27/2026 08:28:36 PAGE 6   
+
+ 303   2                  LedBuff[i] = LedChar[11];           // 全灭
+ 304   2          }
+ 305   1      }
+ 306          // ================= LED流水灯运行 =================
+ 307          void Led_Run(void)
+ 308          {
+ 309   1              //问题卡死在led为模式1
+ 310   1              //      led_mode = Set_led_mode;
+ 311   1          // 只在模式变化时同步，不每次覆盖！
+ 312   1          if(mode == set_mode)
+ 313   1          {
+ 314   2              if(led_mode != Set_led_mode)
+ 315   2              {
+ 316   3                  led_mode = Set_led_mode;
+ 317   3                  index = 0;  // 模式切换时复位位置
+ 318   3              }
+ 319   2          }
+ 320   1          switch(led_mode)
+ 321   1          {
+ 322   2              //模式1:L1→L8左到右单循环
+ 323   2              case 1:P6_OUT = _cror_(0x7F, index);index++;
+ 324   2                  if(index >= 8){index = 0;led_mode = 2;}
+ 325   2                  break;
+ 326   2              //模式2:L8→L1右到左单循环
+ 327   2              case 2:P6_OUT = _crol_(0xFE, index);index++;
+ 328   2                  if(index >= 8){index = 0;led_mode = 3;}
+ 329   2                  break;
+ 330   2              //模式3:L1+L8→L2+L7→L3+L6→L4+L5双向汇聚
+ 331   2              case 3:P6_OUT = _cror_(0x7F, index) & _crol_(0xFE, index);index++;
+ 332   2                  if(index >= 4){index = 0;led_mode = 4;}
+ 333   2                  break;
+ 334   2              //模式4:L4+L5→L3+L6→L2+L7→L1+L8双向发散
+ 335   2              case 4:P6_OUT = _crol_(0xEF, index) & _cror_(0xF7, index);index++;
+ 336   2                  if(index >= 4){index = 0;led_mode = 1;}
+ 337   2                  break;
+ 338   2              default:led_mode = 1;index = 0;
+ 339   2                  break;
+ 340   2          }
+ 341   1      }            
+ 342          //// ================= EEPROM 保存/加载 =================
+ 343          //void Save_Settings(void)
+ 344          //{
+ 345          //    eeprom_write(0x00, time);
+ 346          //}
+ 347          
+ 348          //void Load_Settings(void)
+ 349          //{
+ 350          //    uint8_t tmp;      
+ 351          //    if(tmp < 4 && tmp > 12) tmp = 4;
+ 352          //      else tmp = eeprom_read(0x00);
+ 353          //      time = tmp;
+ 354          //}
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1293    ----
+   CONSTANT SIZE    =     12    ----
+   XDATA SIZE       =     41       2
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      4    ----
+C51 COMPILER V9.54   MAIN                                                                  05/27/2026 08:28:36 PAGE 7   
+
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
