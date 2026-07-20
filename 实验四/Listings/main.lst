@@ -1,0 +1,221 @@
+C51 COMPILER V9.54   MAIN                                                                  06/17/2026 08:18:20 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE main.c LARGE OPTIMIZE(8,SPEED) BROWSE 
+                    -DEBUG OBJECTEXTEND PRINT(.\Listings\main.lst)
+
+line level    source
+
+   1          #include "main.h"
+   2          
+   3          // ================= 全局变量定义 =================
+   4          uint8_t key = 0;
+   5          uint16_t dac_voltage = 0;           // DAC输出电压值 (10mV单位, 0~500对应0~5.00V)
+   6          uint16_t v_cnt = 0;               // Timer0计数器(100us/tick)
+   7          uint16_t set_temp = 0,parameter=25;
+   8          uint16_t temperature = 2500;      // 温度值 (乘以100, 单位℃, 初始25.00℃)
+   9          // 外部变量
+  10          extern uint8_t LedBuff[8];
+  11          extern uint8_t code LedChar[];
+  12          // 电压显示段码: A _ _ _ _ X. X X
+  13          uint8_t v_char[8] = {0xC1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  14          // 参数显示段码: P _ _ _ _ _ D D
+  15          uint8_t p_char[8] = {0x8C, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  16          // 温度显示段码: C _ _ _ D D . D D
+  17          uint8_t c_char[8] = {0xC6, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  18          
+  19          
+  20          // 状态变量 (初始值参见2.5节)
+  21          uint8_t show_mode = DISP_C;  // 0=温度显示界面, 1=电压输出界面, 2=参数设置界面 (初始:�
+             -��度显示界面)
+  22          bit key5_mode = 0;     // 0=模式1：输出电压与温度相关, 1=模式2：电压按照图7给出的�
+             -�系输出
+  23          
+  24          
+  25          
+  26          // 函数声明
+  27          void Adc_run(void);
+  28          void Seg_Run(void);
+  29          void Key_Run(void);
+  30          void Led_Run(void);
+  31          
+  32          // ================= 主函数 =================
+  33          void main(void)
+  34          {
+  35   1              GPIO();
+  36   1              DS18B20_Init();         
+  37   1          Timer0_Init();          
+  38   1          Timer1_Init();
+  39   1      
+  40   1          // ADC初始化 (通道3, 内部2.5V参考)
+  41   1          ADCCFG   |= 0x20;           // ADC时钟=SYSCLK/2 (12MHz@24MHz)
+  42   1          ADC_CONTR |= 0x80;          // 开启ADC电源
+  43   1          
+  44   1          // DAC初始化
+  45   1      //    DAC_Init();
+  46   1      
+  47   1          while(1) 
+  48   1          {
+  49   2              Key_Run();
+  50   2              Adc_run();  
+  51   2              Seg_Run();
+  52   2          }
+C51 COMPILER V9.54   MAIN                                                                  06/17/2026 08:18:20 PAGE 2   
+
+  53   1      }
+  54          
+  55          // ================= Timer1中断 (500us, 时基+频率测量门控) =================
+  56          void timer1() interrupt 3
+  57          {
+  58   1          TL1 = 0x18;                 // 手动重装: 65536-1000=64536=0xFC18
+  59   1          TH1 = 0xFC;
+  60   1      
+  61   1              v_cnt++;
+  62   1          
+  63   1          if(v_cnt & 0x01)            // 奇数tick: 数码管扫描
+  64   1          {                           
+  65   2              Seg_Scan();
+  66   2          } 
+  67   1          else                        // 偶数tick: LED刷新
+  68   1          {                           
+  69   2              P7 = 0xFF;              // 先关位选
+  70   2              P6 = 0xFF;              // ★清P6再切电源, 防止段码串扰LED
+  71   2              P40 = 0;                // 开LED电源(清空后再开)
+  72   2              Led_Run();
+  73   2          }
+  74   1              
+  75   1      }
+  76          // ================= 显示缓存更新 =================
+  77          void Seg_Run(void)
+  78          {
+  79   1          uint8_t i;
+  80   1              if(show_mode == DISP_C)  // 温度显示界面
+  81   1                      {
+  82   2                              c_char[4] = LedChar[temperature /1000];  // 十位 (2)
+  83   2                              c_char[5] = LedChar[temperature /100%10] & 0x7F;  // 个位带小数点 (5.)
+  84   2                              c_char[6] = LedChar[temperature /10%10];  // 小数点后第一位 (4)
+  85   2                              c_char[7] = LedChar[temperature % 10];  // 小数点后第二位 (2)
+  86   2                              
+  87   2                              for(i = 0; i < 8; i++)
+  88   2                                      LedBuff[i] = c_char[i];
+  89   2                      } 
+  90   1              else if(show_mode == DISP_P)  // 参数设置界面
+  91   1                      {
+  92   2                              // 参数 parameter 是整数，范围0-99
+  93   2                              p_char[6] = LedChar[parameter / 10];  // 十位
+  94   2                              p_char[7] = LedChar[parameter % 10];  // 个位
+  95   2                              
+  96   2                              for(i = 0; i < 8; i++)
+  97   2                                      LedBuff[i] = p_char[i];
+  98   2                      } 
+  99   1               else if(show_mode == DISP_U)  // 电压输出界面
+ 100   1                      {                       
+ 101   2                              v_char[5] = LedChar[dac_voltage / 100]& 0x7F;        // 整数位
+ 102   2                              v_char[6] = LedChar[dac_voltage % 100/ 10] ;    // 小数点后第一位，带小数点
+ 103   2                              v_char[7] = LedChar[dac_voltage % 100% 10];           // 小数点后第二位
+ 104   2                              
+ 105   2                              for(i = 0; i < 8; i++)
+ 106   2                                      LedBuff[i] = v_char[i];
+ 107   2                      } 
+ 108   1      
+ 109   1      }
+ 110          
+ 111          // ================= 温度采集 & 输出控制 & 数据刷新=================
+ 112          void Adc_run(void)
+ 113          {
+ 114   1          if(v_cnt >= 500)
+C51 COMPILER V9.54   MAIN                                                                  06/17/2026 08:18:20 PAGE 3   
+
+ 115   1              {
+ 116   2                      v_cnt = 0;
+ 117   2                      EA = 0;
+ 118   2      
+ 119   2                      // 更新温度值
+ 120   2                      Start18B20();//关键
+ 121   2                      temperature = Get18B20Temp();  // 温度乘以100
+ 122   2                      
+ 123   2                      if(key5_mode == 0)  // 模式1：温度 < parameter 时输出0V，否则输出5V
+ 124   2                      {
+ 125   3                              if(temperature < parameter * 100)  // 注意parameter是整数，温度是乘以100
+ 126   3                                      dac_voltage = 0;
+ 127   3                              else
+ 128   3                                      dac_voltage = 500;  // 5.00V, 单位10mV
+ 129   3                      }
+ 130   2                      else // 模式2：按照图7关系输出 (暂定固定2.50V)
+ 131   2                      {
+ 132   3                              if(temperature <= 2000)dac_voltage = 100;//1v
+ 133   3                              else if(temperature >= 4000)dac_voltage = 400;//4v
+ 134   3                              else if(temperature < 4000 &&temperature > 2000)dac_voltage = 0.15*temperature -200;
+ 135   3                      }
+ 136   2                      
+ 137   2                      EA = 1;  
+ 138   2              }
+ 139   1      }
+ 140          
+ 141          // ================= 按键处理 (S4~S7) =================
+ 142          void Key_Run(void)
+ 143          {
+ 144   1          key = Key_scan();
+ 145   1          switch(key) {
+ 146   2      
+ 147   2                      // S4: 显示界面切换 (温度->电压->参数->温度...)
+ 148   2              case 4: 
+ 149   2                  show_mode++; 
+ 150   2                  if(show_mode == 3) show_mode = DISP_C;  // 循环 0->1->2->0
+ 151   2                  break;
+ 152   2      
+ 153   2                      // S5: 模式切换 (模式1<-->模式2)        
+ 154   2                      case 5:
+ 155   2                  key5_mode = !key5_mode;
+ 156   2                  break;
+ 157   2      
+ 158   2                      // S6: 温度参数减1
+ 159   2              case 6:
+ 160   2                  if(show_mode == DISP_P) {
+ 161   3                      if(parameter > 0) parameter--;
+ 162   3                      else parameter = 99;  // 循环
+ 163   3                  }
+ 164   2                  break;
+ 165   2      
+ 166   2                      // S7: 温度参数加1
+ 167   2              case 7:
+ 168   2                  if(show_mode == DISP_P) {
+ 169   3                      if(parameter < 99) parameter++;
+ 170   3                      else parameter = 0;  // 循环
+ 171   3                  }
+ 172   2       
+ 173   2              default: break; 
+ 174   2      
+ 175   2          }
+ 176   1      }
+C51 COMPILER V9.54   MAIN                                                                  06/17/2026 08:18:20 PAGE 4   
+
+ 177          
+ 178          void Led_Run(void)
+ 179          {
+ 180   1          P6 |= 0x0F;       
+ 181   1          if(key5_mode == 0) P6 &= ~0x01;// 模式1指示灯 L1 (P6.0)      
+ 182   1          switch(show_mode)// 界面指示灯 
+ 183   1                      {
+ 184   2              case 0:P6 &= ~0x02;break;
+ 185   2              case 1:P6 &= ~0x04;break;
+ 186   2              case 2:P6 &= ~0x08;break;               
+ 187   2              default:break;
+ 188   2                      }
+ 189   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    935    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     36    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
