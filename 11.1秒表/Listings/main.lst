@@ -1,0 +1,152 @@
+C51 COMPILER V9.54   MAIN                                                                  04/11/2026 12:35:28 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG 
+                    -OBJECTEXTEND PRINT(.\Listings\main.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "main.h"
+   2          
+   3          // EEPROM 地址规划
+   4          #define ADDR_SEC  0x15
+   5          #define ADDR_MIN  0x16
+   6          #define ADDR_HOUR 0x17
+   7          
+   8          // 全局变量定义 (默认初始值 23:59:50)
+   9          volatile uint8_t sec = 50;
+  10          volatile uint8_t min = 59;
+  11          volatile uint8_t hour = 23;
+  12          
+  13          // 用于记录上次保存时的分钟，避免每秒保存导致抖动
+  14          
+  15          uint8_t last_sec = 0xFF;
+  16          uint8_t last_min = 0xFF;
+  17          uint8_t last_hour = 0xFF;
+  18          
+  19          // 函数声明
+  20          void Load_time_From_EEPROM(void);
+  21          void Save_time_To_EEPROM(void);
+  22          
+  23          int main(void)  
+  24          {                  
+  25   1          I2C_Init(); 
+  26   1              Nix_Init();
+  27   1               
+  28   1          // 1. 加载时间
+  29   1              Load_time_From_EEPROM();
+  30   1          Delay_ms(5);
+  31   1          // 2. 初始化定时器
+  32   1          Timer0_Init(); 
+  33   1          
+  34   1              // 同步标记，必须
+  35   1          last_sec = sec;
+  36   1              last_min = min;
+  37   1              last_hour = hour;
+  38   1      
+  39   1          while(1)
+  40   1          {
+  41   2              // --- 数码管动态扫描显示 ---
+  42   2              P7 = 0XFF;        
+  43   2              P7 = ~T_COM[0];       
+  44   2              P6 = Nix[sec % 10]; 
+  45   2              Delay_ms(1);      
+  46   2              
+  47   2              P7 = 0XFF;        
+  48   2              P7 = ~T_COM[1];        
+  49   2              P6 = Nix[sec / 10]; 
+  50   2              Delay_ms(1);      
+  51   2      
+  52   2              P7 = 0XFF;        
+  53   2              P7 = ~T_COM[2];        
+  54   2              P6 = ~Nix[10]; 
+C51 COMPILER V9.54   MAIN                                                                  04/11/2026 12:35:28 PAGE 2   
+
+  55   2              Delay_ms(1);  
+  56   2                      
+  57   2              P7 = 0XFF;        
+  58   2              P7 = ~T_COM[3];        
+  59   2              P6 = Nix[min % 10]; 
+  60   2              Delay_ms(1); 
+  61   2                      
+  62   2              P7 = 0XFF;        
+  63   2              P7 = ~T_COM[4];        
+  64   2              P6 = Nix[min / 10]; 
+  65   2              Delay_ms(1); 
+  66   2                      
+  67   2              P7 = 0XFF;        
+  68   2              P7 = ~T_COM[5];        
+  69   2              P6 = ~Nix[10]; 
+  70   2              Delay_ms(1); 
+  71   2                      
+  72   2              P7 = 0XFF;        
+  73   2              P7 = ~T_COM[6];        
+  74   2              P6 = Nix[hour % 10]; 
+  75   2              Delay_ms(1);
+  76   2                      
+  77   2              P7 = 0XFF;        
+  78   2              P7 = ~T_COM[7];        
+  79   2              P6 = Nix[hour / 10]; 
+  80   2              Delay_ms(1);            
+  81   2                      
+  82   2              // --- 数据保存逻辑 (每分钟保存一次) ---
+  83   2              if (sec  != last_sec| min != last_min | hour != last_hour)
+  84   2              {
+  85   3                  Save_time_To_EEPROM();Delay_ms(5); 
+  86   3                       last_sec = sec;
+  87   3                       last_min = min;
+  88   3                      last_hour = hour;
+  89   3              }
+  90   2          }
+  91   1      }
+  92          void Save_time_To_EEPROM(void)
+  93          {
+  94   1          eeprom_write(ADDR_SEC, sec);Delay_ms(5);
+  95   1              eeprom_write(ADDR_MIN, min);Delay_ms(5);
+  96   1              eeprom_write(ADDR_HOUR, hour);Delay_ms(5);
+  97   1      }
+  98          void Load_time_From_EEPROM(void)
+  99          {
+ 100   1              uint8_t s ,m,h;
+ 101   1      
+ 102   1          //sec
+ 103   1          s = eeprom_read(ADDR_SEC);Delay_ms(5);
+ 104   1          m = eeprom_read(ADDR_MIN);Delay_ms(5);
+ 105   1          h = eeprom_read(ADDR_HOUR);Delay_ms(5);
+ 106   1           // 4. 校验数据合法性
+ 107   1          if (s < 60 && m < 60 && h < 24)
+ 108   1          {
+ 109   2              sec = s;
+ 110   2              min = m;
+ 111   2              hour = h;
+ 112   2          }
+ 113   1          else
+ 114   1          {
+ 115   2              // 数据损坏，重置为默认值并重新写入
+ 116   2              sec = 50;
+C51 COMPILER V9.54   MAIN                                                                  04/11/2026 12:35:28 PAGE 3   
+
+ 117   2              min = 59;
+ 118   2              hour = 23;
+ 119   2              Save_time_To_EEPROM();
+ 120   2          }
+ 121   1              
+ 122   1              
+ 123   1      }
+ 124          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    452    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      6       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

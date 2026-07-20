@@ -1,0 +1,87 @@
+C51 COMPILER V9.54   TIMER                                                                 04/11/2026 12:34:37 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE TIMER
+OBJECT MODULE PLACED IN .\Objects\Timer.obj
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE Timer.c OPTIMIZE(8,SPEED) BROWSE DEBUG
+                    - OBJECTEXTEND PRINT(.\Listings\Timer.lst) OBJECT(.\Objects\Timer.obj)
+
+line level    source
+
+   1          #include "Timer.h"
+   2          
+   3          // 定义全局标志位
+   4          volatile bit g_timer_flag = 0;
+   5          
+   6          static unsigned char timer_cnt = 0; 
+   7          
+   8          extern volatile unsigned char sec; // 引用 main.c 中的 sec
+   9          
+  10          extern volatile unsigned char min,hour;
+  11          
+  12          void Timer0_Init(void)      //¶¨Ê±Æ÷0ÖÐ¶Ï  T0  MODE0
+  13          {
+  14   1              P7M0=0XFF;
+  15   1              P7M1=0XFF;
+  16   1              P6M0=0X00;
+  17   1              P6M1=0X00;              
+  18   1              AUXR = 0X00; //¸¨Öú¼Ä´æÆ÷ÅäÖÃ     
+  19   1              
+  20   1              TMOD = 0X00;//¶¨Ê±Æ÷Ä£Ê½¼Ä´æÆ÷ÅäÖÃ
+  21   1              TCON = 0X10;
+  22   1              TL0 = 0XB0;
+  23   1              TH0 = 0X3C;//50ms
+  24   1              
+  25   1              EA = 1;
+  26   1              ET0 = 1;//ÖÐ¶ÏÔÊÐíÎ»  
+  27   1      }
+  28          
+  29          // 定时器0中断服务函数
+  30          void Timer0_ISR(void) interrupt 1
+  31          {
+  32   1              TL0 = 0XB0;
+  33   1              TH0 = 0X3C;
+  34   1          
+  35   1          timer_cnt++;
+  36   1          if (timer_cnt >= 20) 
+  37   1          {
+  38   2              timer_cnt = 0;
+  39   2              sec++;
+  40   2              if (sec > 59)
+  41   2              {
+  42   3                  sec = 0;
+  43   3                              min++;
+  44   3                              if(min > 59)
+  45   3                              {
+  46   4                                      min=0;
+  47   4                                      hour++;
+  48   4                                      if(hour > 23)
+  49   4                                      {
+  50   5                                              hour=0;
+  51   5                                      }
+  52   4      
+  53   4                              }
+  54   3      
+C51 COMPILER V9.54   TIMER                                                                 04/11/2026 12:34:37 PAGE 2   
+
+  55   3              }
+  56   2          }
+  57   1          
+  58   1          g_timer_flag = 1; // 置位标志，通知主循环（可选，用于其他同步任务）
+  59   1      }
+  60          
+  61          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     94    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
