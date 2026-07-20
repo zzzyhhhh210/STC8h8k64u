@@ -1,0 +1,83 @@
+C51 COMPILER V9.54   NIX                                                                   10/30/2025 09:40:33 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE NIX
+OBJECT MODULE PLACED IN .\Objects\Nix.obj
+COMPILER INVOKED BY: C:\Keil_v51\C51\BIN\C51.EXE Nix.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\Nix.
+                    -lst) OBJECT(.\Objects\Nix.obj)
+
+line level    source
+
+   1          #include "Nix.h"
+   2          #include "Delay.h"
+   3          
+   4          uint_32 Nix[]={0xC0,0xF9,0xA4,0xB0,0x99,0x92,0x82,0xF8};   //共阳
+   5          //      0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F
+   6          //    0xC0,0xF9,0xA4,0xB0,0x99,0x92,0x82,0xF8,0x80,0x90,0x88,0x83,0xC6,0xA1,0x86,0x8E
+   7          //      0.       1.   2.   3.   4.       5.   6.   7.   8.       9.   A.   B.   C.   D.   E.   F.
+   8          //    0x40,0x79,0x24,0x30,0x19,0x12,0x02,0x78,0x00,0x10,0x08,0x03,0x46,0x21,0x06,0x0E
+   9          
+  10          uint_8 T_COM[]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};  //位码
+  11          
+  12          //P7= 7654 3210
+  13          void Nix_Init(void)
+  14          {
+  15   1              P7M0=0xFF; //IO口工作模式,推挽输出
+  16   1              P7M1=0xFF;
+  17   1              P6M0=0x00;
+  18   1              P6M1=0x00;
+  19   1      
+  20   1              P70=0x00;    //全亮
+  21   1              P6=Nix[0];  //段码 显示0
+  22   1      }
+  23          
+  24          //void Nix_text(uint_8 digit,Number)     //静态
+  25          //{
+  26          //      Nix_Init();
+  27          //      switch(digit)
+  28          //              {
+  29          //                      case 1: P7=~T_COM[7];break;     
+  30          //                      case 2: P7=~T_COM[6];break;
+  31          //                      case 3: P7=~T_COM[5];break;
+  32          //                      case 4: P7=~T_COM[4];break;
+  33          //                      case 5: P7=~T_COM[3];break;
+  34          //                      case 6: P7=~T_COM[2];break;
+  35          //                      case 7: P7=~T_COM[1];break;
+  36          //                      case 8: P7=~T_COM[0];break;
+  37          //                  default:
+  38          //                                      break;
+  39          //              }
+  40          //      P6=Nix[Number];
+  41          //      Delay_ms(1);  //确保亮度无闪烁,消影
+  42          //      P6=0x00;
+  43          //}     
+  44          
+  45          void Nix_text(void)  //动态
+  46          {
+  47   1              uint_8  i;
+  48   1              Nix_Init();
+  49   1              for (i=0;i<8;i++)
+  50   1              {
+  51   2                      
+  52   2                      P6=Nix[i];
+  53   2                      Delay_ms(1000);
+  54   2              }
+C51 COMPILER V9.54   NIX                                                                   10/30/2025 09:40:33 PAGE 2   
+
+  55   1              P6=Nix[0];  //清0
+  56   1              
+  57   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     55    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     40       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
