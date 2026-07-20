@@ -1,0 +1,170 @@
+C51 COMPILER V9.54   I2C                                                                   04/08/2026 09:29:35 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE I2C
+OBJECT MODULE PLACED IN .\Objects\I2C.obj
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE I2C.c OPTIMIZE(8,SPEED) BROWSE DEBUG O
+                    -BJECTEXTEND PRINT(.\Listings\I2C.lst) OBJECT(.\Objects\I2C.obj)
+
+line level    source
+
+   1          #include "I2C.h"
+   2          
+   3          sbit SDA = P1^4;
+   4          sbit SCL = P1^5;
+   5          
+   6          bit busy;
+   7          
+   8          void I2C_Init(void)
+   9          {
+  10   1              P_SW2|=0x90;//使能访问XFR，没有冲突不用关闭 90
+  11   1              
+  12   1              P6M0 = 0X00;
+  13   1              P6M1 = 0X00;
+  14   1              P7M0 = 0XFF;
+  15   1              P7M1 = 0XFF;
+  16   1              
+  17   1              I2CCFG = 0xe0;//I2C主机模式；
+  18   1              I2CMSST = 0x00;
+  19   1              EA = 1;
+  20   1              
+  21   1              
+  22   1      }
+  23          
+  24          
+  25          
+  26          void I2C_Isr() interrupt 24
+  27          {
+  28   1              if(I2CMSST & 0x40)
+  29   1              {
+  30   2                      I2CMSST &= ~0x40;//清除中断标志
+  31   2                      busy = 0;
+  32   2              }
+  33   1      }
+  34          
+  35          void I2C_Start()
+  36          {
+  37   1              busy = 1;
+  38   1              I2CMSCR = 0x81;//发送START命令
+  39   1              while(busy);
+  40   1      }
+  41          
+  42          void I2C_SendData(char dat)
+  43          {
+  44   1              I2CTXD = dat;//写数据到数据缓冲区
+  45   1              busy = 1;
+  46   1              I2CMSCR = 0x82;//发送SEND命令
+  47   1              while(busy);
+  48   1      }
+  49          
+  50          void I2C_RecvACK()
+  51          {
+  52   1              busy = 1;
+  53   1              I2CMSCR = 0x83;//发送读ACK命令
+  54   1              while(busy);
+C51 COMPILER V9.54   I2C                                                                   04/08/2026 09:29:35 PAGE 2   
+
+  55   1      }
+  56          
+  57          uint8_t I2C_RecvData()
+  58          {
+  59   1              busy = 1;
+  60   1              I2CMSCR = 0x84;//发送RECV命令
+  61   1              while(busy);
+  62   1              return I2CRXD;
+  63   1      }
+  64          
+  65          void I2C_SendACK()
+  66          {
+  67   1              I2CMSST = 0x00;//设置ACK信号
+  68   1              busy = 1;
+  69   1              I2CMSCR = 0x85;//发送ACK命令
+  70   1              while(busy);
+  71   1      }
+  72          
+  73          void I2C_SendNAK()
+  74          {
+  75   1              I2CMSST = 0x01;//设置NAK信号
+  76   1              busy = 1;
+  77   1              I2CMSCR = 0x85;//发送ACK命令
+  78   1              while(busy);
+  79   1      }
+  80          
+  81          void I2C_Stop()
+  82          {
+  83   1              busy = 1;
+  84   1              I2CMSCR = 0x86;//发送STOP命令
+  85   1              while(busy);
+  86   1      }
+  87          
+  88          void I2C_Delay()
+  89          {
+  90   1              int i;
+  91   1              
+  92   1              for(i=0;i<3000;i++)
+  93   1              {
+  94   2                      _nop_();
+  95   2                      _nop_();
+  96   2                      _nop_();
+  97   2                      _nop_();
+  98   2              }
+  99   1      }
+ 100          
+ 101          void I2C_tect(void)
+ 102          {
+ 103   1              I2C_Init();
+ 104   1              
+ 105   1              P40=0;
+ 106   1              P6=0X01;//亮灯
+ 107   1              
+ 108   1              I2C_Start();
+ 109   1              I2C_SendData(0xa0);//发送设备地+写命令
+ 110   1              I2C_RecvACK();
+ 111   1              I2C_SendData(0x01);//发送存储地址字节10100000
+ 112   1              I2C_RecvACK();
+ 113   1              I2C_SendData(0xfe);//发送数据
+ 114   1              I2C_RecvACK();
+ 115   1              I2C_Stop();
+ 116   1              
+C51 COMPILER V9.54   I2C                                                                   04/08/2026 09:29:35 PAGE 3   
+
+ 117   1              I2C_Delay();
+ 118   1              
+ 119   1              I2C_Start();
+ 120   1              I2C_SendData(0xa0);//发送设备地+写命令
+ 121   1              I2C_RecvACK();
+ 122   1              I2C_SendData(0x01);//发送想要读的存储地址字节
+ 123   1              I2C_RecvACK();
+ 124   1              I2C_SendData(0xa1);//发送设备地+读命令1010 0001
+ 125   1              I2C_RecvACK();
+ 126   1              
+ 127   1      //      P6=I2C_RecvData();//数据
+ 128   1              
+ 129   1              I2C_SendNAK();
+ 130   1              I2C_Stop();
+ 131   1              
+ 132   1              while(1);
+ 133   1      }
+ 134          
+ 135          
+ 136          
+ 137          
+ 138          
+ 139          
+ 140          
+ 141          
+ 142          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    238    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

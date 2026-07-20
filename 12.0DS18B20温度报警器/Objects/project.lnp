@@ -1,0 +1,8 @@
+".\Objects\main.obj",
+".\Objects\Delay.obj",
+".\Objects\Nix.obj",
+".\Objects\DS18B20.obj",
+".\Objects\Key.obj" 
+TO ".\Objects\project" 
+PRINT(".\Listings\project.m51") RAMSIZE(256) 
+DISABLEWARNING (16) 

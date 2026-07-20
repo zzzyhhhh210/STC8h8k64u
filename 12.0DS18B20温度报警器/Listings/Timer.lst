@@ -1,0 +1,101 @@
+C51 COMPILER V9.54   TIMER                                                                 04/08/2026 09:29:35 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE TIMER
+OBJECT MODULE PLACED IN .\Objects\Timer.obj
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE Timer.c OPTIMIZE(8,SPEED) BROWSE DEBUG
+                    - OBJECTEXTEND PRINT(.\Listings\Timer.lst) OBJECT(.\Objects\Timer.obj)
+
+line level    source
+
+   1          #include "Timer.h"
+   2          
+   3          void Timer1_Init(void)          //5ms@11.0592MHz 定时器1中断  T1  MODE1
+   4          {
+   5   1              P7M0=0XFF;
+   6   1              P7M1=0XFF;
+   7   1              P6M0=0X00;
+   8   1              P6M1=0X00;
+   9   1              AUXR = 0x40;    
+  10   1              
+  11   1              TMOD =0x10;     
+  12   1              TCON = 0X40;    
+  13   1              TL1 = 0x00;                             
+  14   1              TH1 = 0x28;                                                             
+  15   1              TR1 = 1;                                
+  16   1              
+  17   1              EA = 1;
+  18   1              ET1 = 1;
+  19   1      }
+  20          
+  21          
+  22          void Timer0_Init(void)      //定时器0中断  T0  MODE0
+  23          {
+  24   1              P7M0=0XFF;
+  25   1              P7M1=0XFF;
+  26   1              P6M0=0X00;
+  27   1              P6M1=0X00;              
+  28   1              AUXR = 0X00; //辅助寄存器配置   
+  29   1              
+  30   1              TMOD = 0X00;//定时器模式寄存器配置
+  31   1              TL0 = 0XB0;
+  32   1              TH0 = 0X3C;
+  33   1              TR0=1;
+  34   1              ET0 = 1;//中断允许位    
+  35   1      }
+  36          
+  37          //中断时，后续功能放主函数
+  38          //中断不能传参
+  39          //中断没有返回值
+  40          //中断函数不用声明
+  41          //中断好处1.提高CPU效率2.实现实时处理功能3.实现分时操作
+  42          //
+  43          //void Timer0(void) interrupt 0
+  44          //{ 
+  45          //unsigned char cnt = 0,sec = 0;//sec95
+  46          //              cnt ++;
+  47          //              if(cnt == 20)
+  48          //              {
+  49          //                      cnt = 0;                                        
+  50          //                      sec ++;
+  51          //              }
+  52          
+  53          //}
+  54          //void Timer0(void) interrupt 0
+C51 COMPILER V9.54   TIMER                                                                 04/08/2026 09:29:35 PAGE 2   
+
+  55          //{ 
+  56          //              if(TF0 == 1)
+  57          //              {
+  58          //                      TF0 = 0;
+  59          //                      cnt ++;
+  60          //                      if(cnt ==20)                                            
+  61          //                      P6 =~ P6;
+  62          //              }
+  63          
+  64          //}
+  65          /*查询法，一般定时器不用
+  66          void Timer0_Init(void)          //@11.0592MHz
+  67          {
+  68                  AUXR &= 0x7F;                   //12分频  XXXX XXXX & 0111 1111 -> 0XXX XXXX
+  69                  TMOD &= 0xF0;                   //模式 
+  70                  TL0 = 0x66;                             
+  71                  TH0 = 0xFC;                             
+  72                  TF0 = 0;                                
+  73                  TR0 = 1;                                
+  74          }
+  75          */
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     58    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

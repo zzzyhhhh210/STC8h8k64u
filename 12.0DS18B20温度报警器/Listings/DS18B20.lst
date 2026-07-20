@@ -1,0 +1,152 @@
+C51 COMPILER V9.54   DS18B20                                                               04/24/2026 14:42:47 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DS18B20
+OBJECT MODULE PLACED IN .\Objects\DS18B20.obj
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE DS18B20.c OPTIMIZE(8,SPEED) BROWSE DEB
+                    -UG OBJECTEXTEND PRINT(.\Listings\DS18B20.lst) OBJECT(.\Objects\DS18B20.obj)
+
+line level    source
+
+   1          #include "DS18B20.h"
+   2          //      void Delay_ms(uint8_t ms);
+   3          //void Delay_us(uint16_t us);
+   4          
+   5          void DS18B20_Init(void)
+   6          {
+   7   1              P3M1 = 0X00; P3M0 = 0X00;
+   8   1              P6M1 = 0XFF; P6M0 = 0XFF;
+   9   1              P7M1 = 0X00; P7M0 = 0X00;
+  10   1              P5M1 = 0X00; P5M0 = 0X00;
+  11   1              Start18B20();
+  12   1              
+  13   1      }
+  14          bit Get18B20Ack(void)
+  15          {
+  16   1              bit ack;    
+  17   1              IO_18B20 = 0;//单片机将总线电平拉低
+  18   1              Delay_us(600);//产生延时500us
+  19   1              IO_18B20 = 1;//总线电平拉高
+  20   1              Delay_us(60);//延时60us
+  21   1              ack = IO_18B20;//读取存在脉冲
+  22   1              while(!IO_18B20);//等待存在脉冲
+  23   1              Delay_us(40);
+  24   1              return ack;
+  25   1      }
+  26          
+  27          void Write18B20(uint8_t dat)
+  28          {
+  29   1              unsigned char mask;
+  30   1              EA = 0;
+  31   1              for(mask = 0x01; mask != 0; mask <<= 1)
+  32   1              {
+  33   2                      IO_18B20 = 0;
+  34   2                      _nop_();
+  35   2                      _nop_();
+  36   2                      if( (mask & dat) == 0)
+  37   2                              IO_18B20 = 0;
+  38   2                      else
+  39   2                              IO_18B20 = 1;
+  40   2                              Delay_us(60);
+  41   2                              IO_18B20 = 1;
+  42   2                              Delay_us(10);
+  43   2              }
+  44   1              EA = 1;
+  45   1      }
+  46          
+  47          uint8_t Read18B20(void)
+  48          { 
+  49   1              uint8_t dat = 0;
+  50   1              uint8_t mask = 0;
+  51   1              EA = 0;
+  52   1              for(mask = 0x01; mask != 0; mask <<= 1)
+  53   1              {
+  54   2                      IO_18B20 = 0;
+C51 COMPILER V9.54   DS18B20                                                               04/24/2026 14:42:47 PAGE 2   
+
+  55   2                      _nop_();
+  56   2                      _nop_();
+  57   2                      _nop_();
+  58   2                      _nop_();
+  59   2                      _nop_();
+  60   2                      _nop_();
+  61   2                      IO_18B20 = 1;
+  62   2                      _nop_();
+  63   2                      _nop_();
+  64   2                      _nop_();
+  65   2                      _nop_();
+  66   2                      _nop_();
+  67   2                      _nop_();
+  68   2                      Delay_us(10);
+  69   2                      if(!IO_18B20)
+  70   2                              dat &= ~mask;
+  71   2                      else
+  72   2                              dat |= mask;
+  73   2                      Delay_us(60);
+  74   2              }
+  75   1              EA = 1;
+  76   1              return dat;
+  77   1      }
+  78          
+  79          void Start18B20(void)
+  80          {
+  81   1              bit ack;
+  82   1              ack = Get18B20Ack();
+  83   1              if(ack == 0)
+  84   1              {
+  85   2                      Write18B20(0xcc);
+  86   2                      Write18B20(0x44);
+  87   2      
+  88   2              }
+  89   1              Delay_us(500);
+  90   1      }
+  91          
+  92          uint16_t Get18B20Temp(void)
+  93          {
+  94   1              uint8_t MSB, LSB;
+  95   1              int temp;
+  96   1              float sum;//浮点数
+  97   1              bit ack;
+  98   1              ack = Get18B20Ack();
+  99   1              
+ 100   1              if(ack == 0)
+ 101   1              {
+ 102   2                      Write18B20(0xcc);
+ 103   2                      Write18B20(0xBE);
+ 104   2                      LSB = Read18B20();
+ 105   2                      MSB = Read18B20();
+ 106   2                       
+ 107   2                      temp = ((int)MSB << 8) + LSB;
+ 108   2                      sum = temp*0.0625;
+ 109   2                      temp = sum*100+0.5;
+ 110   2                      
+ 111   2              }
+ 112   1      
+ 113   1              return temp;
+ 114   1      }
+ 115          
+ 116          
+C51 COMPILER V9.54   DS18B20                                                               04/24/2026 14:42:47 PAGE 3   
+
+ 117          
+ 118          
+ 119          
+ 120          
+ 121          
+ 122          
+ 123          
+ 124          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    305    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      11
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       3
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
