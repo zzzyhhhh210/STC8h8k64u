@@ -1,0 +1,75 @@
+C51 COMPILER V9.54   MAIN                                                                  12/16/2025 00:10:42 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\keil.C51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\mai
+                    -n.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /************
+   2          
+   3          数码管显示数据（中断控制，串口发送
+   4          
+   5          ***************/
+   6          
+   7          #include <stc8h.h>
+   8          #include "Usart.h"
+   9          #include "Delay.h"
+  10          #include "Nix.h"
+  11          
+  12          unsigned char temp;
+  13          
+  14          int main(void)
+  15          {  
+  16   1              Nix_Init();
+  17   1              Uart1_Init();             
+  18   1          while(1)
+  19   1              {
+  20   2                      P6=0XFF;
+  21   2                      P7=0xfe;   
+  22   2                      P6 = Nix[temp%16];
+  23   2                      Delay_ms(5);//保证数码管显示稳定，避免闪烁
+  24   2                        
+  25   2                      P6=0XFF;
+  26   2                      P7=0xfd;    
+  27   2                      P6 = Nix[temp/16];
+  28   2                      Delay_ms(5);//保证数码管显示稳定，避免闪烁      
+  29   2              
+  30   2              }
+  31   1                
+  32   1      }
+  33          
+  34          void inter0() interrupt 4
+  35          {
+  36   1      //      if(SBUF >= 0 && SBUF <= 9)
+  37   1      //      {
+  38   1      //              temp = SBUF;
+  39   1      //      }
+  40   1      //      else
+  41   1      //      {
+  42   1                      temp = SBUF;
+  43   1      //      }
+  44   1              RI=0;
+  45   1              
+  46   1                      
+  47   1      }
+  48          
+*** WARNING C316 IN LINE 48 OF main.c: unterminated conditionals
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     69    ----
+   CONSTANT SIZE    =   ----    ----
+C51 COMPILER V9.54   MAIN                                                                  12/16/2025 00:10:42 PAGE 2   
+
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
