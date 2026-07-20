@@ -1,0 +1,9 @@
+"main.obj",
+"I2C.obj",
+"Delay.obj",
+"Timer.obj",
+"Nix.obj",
+"RTC.obj" 
+TO "project" 
+PRINT(".\Listings\project.m51") RAMSIZE(256) 
+DISABLEWARNING (16) 

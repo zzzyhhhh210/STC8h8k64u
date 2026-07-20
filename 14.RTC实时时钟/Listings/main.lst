@@ -1,0 +1,91 @@
+C51 COMPILER V9.54   MAIN                                                                  05/13/2026 16:28:29 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG 
+                    -OBJECTEXTEND PRINT(.\Listings\main.lst)
+
+line level    source
+
+   1          #include "main.h"
+   2          
+   3          sbit BUZZ  = P5^4;
+   4          
+   5          // 全局变量定义
+   6          volatile uint8_t code time[] = {26,4,20,23,59,59};
+   7          
+   8          uint8_t cnt = 0;
+   9          uint8_t clok_time[8] = {0,0,0xbe,0,0,0xbe,0,0}; 
+  10          
+  11          void main(void) 
+  12          {          
+  13   1              unsigned char i;
+  14   1              unsigned char temp;
+  15   1              
+  16   1              P_SW2 |= 0x80;
+  17   1              P5M1 = 0X00; P5M0 = 0X00;       //蜂鸣器初始化
+  18   1              Nix_Init();
+  19   1              RTC_config();
+  20   1              Timer0_Init();
+  21   1              
+  22   1          while(1)
+  23   1          {
+  24   2                      if(cnt == 0)
+  25   2                      {
+  26   3                              clok_time[0] = HOUR/10;
+  27   3                              clok_time[1] = HOUR%10;
+  28   3                              clok_time[3] = MIN/10;
+  29   3                              clok_time[4] = MIN%10;
+  30   3                              clok_time[6] = SEC/10;
+  31   3                              clok_time[7] = SEC%10;
+  32   3                      }
+  33   2                      for(i=0;i<8;i++)
+  34   2                      {
+  35   3                              P7 = _crol_(0xfe,i);
+  36   3                              
+  37   3                              if(i==2 || i==5)
+  38   3                                      P6 = clok_time[i];
+  39   3                              else 
+  40   3                                      P6 = Nix[clok_time[7-i]];
+  41   3                              Delay_ms(1);
+  42   3                              P6 = 0xFF;
+  43   3                      }
+  44   2                      if(HOUR == 0 & MIN == 0 & SEC == 0){
+  45   3                              BUZZ = 0;
+  46   3                              }
+  47   2                      else if(HOUR == 0 & MIN == 0 & SEC == 1)
+  48   2                              BUZZ = 1;
+  49   2      //              if (P06 == 0)
+  50   2      //              {
+  51   2      //                      Delay_ms(20);
+  52   2      //                      if (P06 == 0)
+  53   2      //                      {
+  54   2      //                              while(P06 == 0);
+C51 COMPILER V9.54   MAIN                                                                  05/13/2026 16:28:29 PAGE 2   
+
+  55   2      //                              BUZZ = 1;
+  56   2      //                      }
+  57   2      //              
+  58   2      //              }
+  59   2                      
+  60   2                      
+  61   2          }
+  62   1      }
+*** WARNING C280 IN LINE 14 OF main.c: 'temp': unreferenced local variable
+  63          
+  64          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    246    ----
+   CONSTANT SIZE    =      6    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      9       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
