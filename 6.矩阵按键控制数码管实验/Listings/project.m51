@@ -1,0 +1,379 @@
+BL51 BANKED LINKER/LOCATER V6.22                                                        05/13/2026  22:30:34  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
+C:\USERS\ADMINISTRATOR\APPDATA\LOCAL\KEIL_V5\C51\BIN\BL51.EXE .\Objects\STARTUP.obj, .\Objects\main.obj, .\Objects\Delay
+>> .obj, .\Objects\Key.obj, .\Objects\Nix.obj TO .\Objects\project PRINT (.\Listings\project.m51) RAMSIZE (256) DISABLEW
+>> ARNING (16)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  .\Objects\STARTUP.obj (?C_STARTUP)
+  .\Objects\main.obj (MAIN)
+  .\Objects\Delay.obj (DELAY)
+  .\Objects\Key.obj (KEY)
+  .\Objects\Nix.obj (NIX)
+  C:\USERS\ADMINISTRATOR\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C_INIT)
+  C:\USERS\ADMINISTRATOR\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C?CLDOPTR)
+  C:\USERS\ADMINISTRATOR\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C?LLDIDATA)
+
+
+LINK MAP OF MODULE:  .\Objects\project (?C_STARTUP)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     0029H     UNIT         ?DT?NIX
+            DATA    0031H     000AH     UNIT         ?DT?MAIN
+            DATA    003BH     0003H     UNIT         _DATA_GROUP_
+            IDATA   003EH     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+            CODE    0003H     008EH     UNIT         ?PR?KEY_SCAN?KEY
+            CODE    0091H     008CH     UNIT         ?C_C51STARTUP
+            CODE    011DH     0062H     UNIT         ?PR?_NIX_NUM?NIX
+            CODE    017FH     003EH     UNIT         ?C_INITSEG
+            CODE    01BDH     0039H     UNIT         ?C?LIB_CODE
+            CODE    01F6H     0038H     UNIT         ?PR?_NIX_DISPLAY?NIX
+            CODE    022EH     002FH     UNIT         ?PR?MAIN?MAIN
+            CODE    025DH     0011H     UNIT         ?PR?NIX_INIT?NIX
+            CODE    026EH     0010H     UNIT         ?PR?_DELAY_MS?DELAY
+            CODE    027EH     0010H     UNIT         ?PR?_DELAY1US?DELAY
+            CODE    028EH     0006H     UNIT         ?PR?KEY_INIT?KEY
+
+
+
+OVERLAY MAP OF MODULE:   .\Objects\project (?C_STARTUP)
+
+
+SEGMENT                          DATA_GROUP 
+  +--> CALLED SEGMENT          START    LENGTH
+----------------------------------------------
+?C_C51STARTUP                  -----    -----
+  +--> ?PR?MAIN?MAIN
+  +--> ?C_INITSEG
+BL51 BANKED LINKER/LOCATER V6.22                                                      05/13/2026  22:30:34  PAGE 2
+
+
+
+?PR?MAIN?MAIN                  -----    -----
+  +--> ?PR?KEY_INIT?KEY
+  +--> ?PR?NIX_INIT?NIX
+  +--> ?PR?KEY_SCAN?KEY
+  +--> ?PR?_NIX_DISPLAY?NIX
+
+?PR?KEY_SCAN?KEY               003BH    0003H
+  +--> ?PR?KEY_INIT?KEY
+  +--> ?PR?_DELAY_MS?DELAY
+
+?PR?_NIX_DISPLAY?NIX           -----    -----
+  +--> ?PR?_DELAY_MS?DELAY
+
+
+
+SYMBOL TABLE OF MODULE:  .\Objects\project (?C_STARTUP)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        ?C_STARTUP
+  C:0091H         SEGMENT       ?C_C51STARTUP
+  I:003EH         SEGMENT       ?STACK
+  C:0000H         PUBLIC        ?C_STARTUP
+  D:00E0H         SYMBOL        ACC
+  D:00F0H         SYMBOL        B
+  D:0083H         SYMBOL        DPH
+  D:0082H         SYMBOL        DPL
+  N:0000H         SYMBOL        IBPSTACK
+  N:0100H         SYMBOL        IBPSTACKTOP
+  N:0080H         SYMBOL        IDATALEN
+  C:0094H         SYMBOL        IDATALOOP
+  N:0000H         SYMBOL        PBPSTACK
+  N:0100H         SYMBOL        PBPSTACKTOP
+  N:0000H         SYMBOL        PDATALEN
+  N:0000H         SYMBOL        PDATASTART
+  N:0000H         SYMBOL        PPAGE
+  N:0000H         SYMBOL        PPAGEENABLE
+  D:00A0H         SYMBOL        PPAGE_SFR
+  D:0081H         SYMBOL        SP
+  C:0091H         SYMBOL        STARTUP1
+  N:0000H         SYMBOL        XBPSTACK
+  N:0000H         SYMBOL        XBPSTACKTOP
+  N:0000H         SYMBOL        XDATALEN
+  N:0000H         SYMBOL        XDATASTART
+  C:0000H         LINE#         126
+  C:0091H         LINE#         133
+  C:0093H         LINE#         134
+  C:0094H         LINE#         135
+  C:0095H         LINE#         136
+  C:0097H         LINE#         185
+  C:009AH         LINE#         196
+  -------         ENDMOD        ?C_STARTUP
+
+  -------         MODULE        MAIN
+  C:0000H         SYMBOL        _ICE_DUMMY_
+BL51 BANKED LINKER/LOCATER V6.22                                                      05/13/2026  22:30:34  PAGE 3
+
+
+  D:0080H         PUBLIC        P0
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  D:00C0H         PUBLIC        P4
+  D:00C8H         PUBLIC        P5
+  D:00E8H         PUBLIC        P6
+  D:00F8H         PUBLIC        P7
+  D:00A8H         PUBLIC        IE
+  D:00B8H         PUBLIC        IP
+  C:022EH         PUBLIC        main
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+  D:0031H         PUBLIC        pos
+  D:0032H         PUBLIC        KeyNum
+  D:0033H         PUBLIC        pos_buf
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          MAIN
+  -------         DO            
+  D:0007H         SYMBOL        i
+  -------         ENDDO         
+  C:022EH         LINE#         10
+  C:022EH         LINE#         11
+  C:022EH         LINE#         13
+  C:0231H         LINE#         14
+  C:0234H         LINE#         15
+  C:0234H         LINE#         16
+  C:0234H         LINE#         17
+  C:0239H         LINE#         18
+  C:023FH         LINE#         19
+  C:023FH         LINE#         21
+  C:0241H         LINE#         22
+  C:0241H         LINE#         23
+  C:024DH         LINE#         24
+  C:024FH         LINE#         25
+  C:0252H         LINE#         28
+  C:0252H         LINE#         29
+  C:025BH         LINE#         31
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        MAIN
+
+  -------         MODULE        DELAY
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0080H         PUBLIC        P0
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  D:00C0H         PUBLIC        P4
+  D:00C8H         PUBLIC        P5
+  D:00E8H         PUBLIC        P6
+  D:00F8H         PUBLIC        P7
+  C:027EH         PUBLIC        _Delay1us
+  D:00A8H         PUBLIC        IE
+  D:00B8H         PUBLIC        IP
+  C:026EH         PUBLIC        _Delay_ms
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+BL51 BANKED LINKER/LOCATER V6.22                                                      05/13/2026  22:30:34  PAGE 4
+
+
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          _DELAY_MS
+  D:0007H         SYMBOL        ms
+  -------         DO            
+  D:0004H         SYMBOL        i
+  -------         ENDDO         
+  C:026EH         LINE#         3
+  C:026EH         LINE#         5
+  C:026EH         LINE#         7
+  C:026EH         LINE#         8
+  C:0272H         LINE#         9
+  C:027BH         LINE#         10
+  C:027DH         LINE#         11
+  -------         ENDPROC       _DELAY_MS
+  -------         PROC          _DELAY1US
+  D:0007H         SYMBOL        us
+  -------         DO            
+  D:0004H         SYMBOL        i
+  -------         ENDDO         
+  C:027EH         LINE#         13
+  C:027EH         LINE#         14
+  C:027EH         LINE#         16
+  C:027EH         LINE#         17
+  C:0282H         LINE#         18
+  C:028BH         LINE#         19
+  C:028DH         LINE#         20
+  -------         ENDPROC       _DELAY1US
+  -------         ENDMOD        DELAY
+
+  -------         MODULE        KEY
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0093H         PUBLIC        P0M1
+  D:0080H         PUBLIC        P0
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  D:00C0H         PUBLIC        P4
+  D:00C8H         PUBLIC        P5
+  D:00E8H         PUBLIC        P6
+  D:00F8H         PUBLIC        P7
+  D:00A8H         PUBLIC        IE
+  D:00B8H         PUBLIC        IP
+  C:028EH         PUBLIC        Key_Init
+  C:0003H         PUBLIC        Key_scan
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+  D:00D0H         PUBLIC        PSW
+  D:0094H         PUBLIC        P0M0
+  -------         PROC          KEY_INIT
+  C:028EH         LINE#         5
+  C:028EH         LINE#         6
+  C:028EH         LINE#         7
+  C:0291H         LINE#         8
+  C:0293H         LINE#         9
+  -------         ENDPROC       KEY_INIT
+  -------         PROC          KEY_SCAN
+  -------         DO            
+BL51 BANKED LINKER/LOCATER V6.22                                                      05/13/2026  22:30:34  PAGE 5
+
+
+  D:003BH         SYMBOL        row
+  D:003CH         SYMBOL        column
+  D:003DH         SYMBOL        key_volume
+  C:0039H         SYMBOL        column_scan
+  -------         ENDDO         
+  C:0003H         LINE#         11
+  C:0003H         LINE#         12
+  C:0003H         LINE#         14
+  C:0006H         LINE#         15
+  C:0009H         LINE#         16
+  C:000FH         LINE#         17
+  C:000FH         LINE#         18
+  C:0014H         LINE#         19
+  C:001AH         LINE#         20
+  C:001AH         LINE#         24
+  C:001DH         LINE#         25
+  C:0023H         LINE#         26
+  C:0023H         LINE#         27
+  C:0026H         LINE#         28
+  C:0028H         LINE#         29
+  C:0028H         LINE#         33
+  C:002BH         LINE#         34
+  C:0030H         LINE#         35
+  C:0036H         LINE#         36
+  C:0036H         LINE#         37
+  C:0039H         LINE#         38
+  C:0039H         LINE#         39
+  C:0039H         LINE#         41
+  C:0039H         LINE#         42
+  C:0043H         LINE#         43
+  C:004DH         LINE#         44
+  C:0057H         LINE#         45
+  C:005FH         LINE#         47
+  C:0069H         LINE#         48
+  C:0082H         LINE#         49
+  C:0087H         LINE#         51
+  C:008AH         LINE#         53
+  C:008AH         LINE#         54
+  C:008AH         LINE#         55
+  C:008DH         LINE#         56
+  C:0090H         LINE#         57
+  -------         ENDPROC       KEY_SCAN
+  -------         ENDMOD        KEY
+
+  -------         MODULE        NIX
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0080H         PUBLIC        P0
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  D:00CCH         PUBLIC        P6M0
+  D:00C0H         PUBLIC        P4
+  D:00E2H         PUBLIC        P7M0
+  D:00CBH         PUBLIC        P6M1
+  D:00C8H         PUBLIC        P5
+  D:00E8H         PUBLIC        P6
+  D:00E1H         PUBLIC        P7M1
+BL51 BANKED LINKER/LOCATER V6.22                                                      05/13/2026  22:30:34  PAGE 6
+
+
+  D:00F8H         PUBLIC        P7
+  D:00A8H         PUBLIC        IE
+  D:0009H         PUBLIC        T_COM
+  D:00B8H         PUBLIC        IP
+  C:025DH         PUBLIC        Nix_Init
+  D:0011H         PUBLIC        Nix
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+  C:011DH         PUBLIC        _Nix_Num
+  C:01F6H         PUBLIC        _Nix_Display
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          NIX_INIT
+  C:025DH         LINE#         11
+  C:025DH         LINE#         12
+  C:025DH         LINE#         13
+  C:0260H         LINE#         14
+  C:0263H         LINE#         15
+  C:0266H         LINE#         16
+  C:0268H         LINE#         18
+  C:026AH         LINE#         19
+  C:026DH         LINE#         20
+  -------         ENDPROC       NIX_INIT
+  -------         PROC          _NIX_NUM
+  D:0007H         SYMBOL        digit
+  D:0004H         SYMBOL        Number
+  C:011DH         LINE#         22
+  C:011DH         LINE#         23
+  C:011DH         LINE#         24
+  C:0120H         LINE#         26
+  C:014DH         LINE#         27
+  C:014DH         LINE#         28
+  C:0151H         LINE#         29
+  C:0155H         LINE#         30
+  C:0159H         LINE#         31
+  C:015DH         LINE#         32
+  C:0161H         LINE#         33
+  C:0165H         LINE#         34
+  C:0169H         LINE#         35
+  C:016EH         LINE#         36
+  C:016EH         LINE#         37
+  C:016EH         LINE#         38
+  C:016EH         LINE#         39
+  C:017BH         LINE#         41
+  C:017EH         LINE#         42
+  -------         ENDPROC       _NIX_NUM
+  -------         PROC          _NIX_DISPLAY
+  D:0001H         SYMBOL        buf
+  -------         DO            
+  D:0008H         SYMBOL        pos
+  -------         ENDDO         
+  C:01F6H         LINE#         44
+  C:01F6H         LINE#         45
+  C:01F6H         LINE#         47
+  C:01F9H         LINE#         48
+  C:020EH         LINE#         49
+  C:021EH         LINE#         51
+  C:0225H         LINE#         52
+BL51 BANKED LINKER/LOCATER V6.22                                                      05/13/2026  22:30:34  PAGE 7
+
+
+  C:022AH         LINE#         53
+  C:022DH         LINE#         54
+  -------         ENDPROC       _NIX_DISPLAY
+  -------         ENDMOD        NIX
+
+  -------         MODULE        ?C?CLDOPTR
+  C:01BDH         PUBLIC        ?C?CLDOPTR
+  -------         ENDMOD        ?C?CLDOPTR
+
+  -------         MODULE        ?C?LLDIDATA
+  C:01EAH         PUBLIC        ?C?LLDIDATA
+  -------         ENDMOD        ?C?LLDIDATA
+
+Program Size: data=63.0 xdata=0 code=660
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)
