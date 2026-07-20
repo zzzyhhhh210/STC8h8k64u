@@ -1,0 +1,253 @@
+C51 COMPILER V9.54   MAIN                                                                  06/27/2026 00:47:45 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE main.c LARGE OPTIMIZE(8,SPEED) BROWSE 
+                    -DEBUG OBJECTEXTEND PRINT(.\Listings\main.lst)
+
+line level    source
+
+   1          #include "main.h"
+   2          
+   3          // ================= 全局变量定义 =================
+   4          uint8_t key = 0;
+   5          uint16_t voltage = 100;           // ADC电压值 (10mV单位, 0~250对应0~2.50V)
+   6          uint16_t v_cnt = 0;               // Timer0计数器(100us/tick)
+   7          uint16_t freq_cnt = 0;
+   8          volatile uint32_t freq_count = 0; // INT0脉冲累加器
+   9          uint32_t freq = 0;                // 实际测量频率值(Hz)
+  10          uint32_t set_freq=0;
+  11          // 电压显示段码: U _ _ _ _ X. X X
+  12          uint8_t v_char[8] = {0xC1, 0xFF, 0xFF, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0};
+  13          
+  14          // 频率显示段码: F _ D D D D D D
+  15          uint8_t f_char[8] = {0x8E, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  16          
+  17          // 状态变量 (初始值参见2.5节)
+  18          bit show_mode = 0;  // 0=电压显示界面, 1=频率显示界面 (初始:电压)
+  19          bit v_mode = 1;     // 0=DAC跟随W2, 1=DAC固定1.0V (初始:固定1.0V)
+  20          bit led_mode = 0;   // 0=LED启用, 1=LED关闭 (初始:启用)
+  21          bit seg_mode = 0;   // 0=数码管启用, 1=数码管关闭 (初始:启用)
+  22          
+  23          // 外部变量
+  24          extern uint8_t LedBuff[8];
+  25          extern uint8_t code LedChar[];
+  26          
+  27          // 函数声明
+  28          void Adc_run(void);
+  29          void Seg_Run(void);
+  30          void Key_Run(void);
+  31          void Led_Run(void);
+  32          void ExtInt0_Init(void);
+  33          
+  34          // ================= 主函数 =================
+  35          void main(void)
+  36          {
+  37   1       GPIO();
+  38   1                 
+  39   1          Timer0_Init();          
+  40   1          Timer1_Init();
+  41   1          Timer2_Init();
+  42   1      
+  43   1          // ADC初始化 (通道3, 内部2.5V参考)
+  44   1          ADCCFG   |= 0x20;           // ADC时钟=SYSCLK/2 (12MHz@24MHz)
+  45   1          ADC_CONTR |= 0x80;          // 开启ADC电源
+  46   1      
+  47   1          while(1) 
+  48   1          {
+  49   2              Key_Run();
+  50   2              Adc_run();  
+  51   2              Seg_Run();
+  52   2          }
+  53   1      }
+  54          
+C51 COMPILER V9.54   MAIN                                                                  06/27/2026 00:47:45 PAGE 2   
+
+  55          // ================= Timer1中断 (500us, 时基+频率测量门控) =================
+  56          void timer1() interrupt 3
+  57          {
+  58   1          TL1 = 0x18;                 // 手动重装: 65536-1000=64536=0xFC18
+  59   1          TH1 = 0xFC;
+  60   1      
+  61   1          freq_cnt++;
+  62   1              v_cnt++;
+  63   1          
+  64   1          if(v_cnt & 0x01)            // 奇数tick: 数码管扫描
+  65   1          {                           
+  66   2              if(seg_mode == 0)
+  67   2                  Seg_Scan();
+  68   2                      if(freq_cnt >= 1000) 
+  69   2                              {    
+  70   3                                      freq_cnt = 0;
+  71   3                                      freq= set_freq;
+  72   3      //                              Timer2_SetFreq(set_freq);
+  73   3                              }
+  74   2      
+  75   2          } 
+  76   1          else                        // 偶数tick: LED刷新
+  77   1          {                           
+  78   2              P7 = 0xFF;              // 先关位选
+  79   2              P6 = 0xFF;              // ★清P6再切电源, 防止段码串扰LED
+  80   2              P40 = 0;                // 开LED电源(清空后再开)
+  81   2              Led_Run();
+  82   2          }
+  83   1              
+  84   1      }
+  85          // ================= 显示缓存更新 =================
+  86          void Seg_Run(void)
+  87          {
+  88   1          uint8_t i;
+  89   1      
+  90   1          if(show_mode == DISP_V)
+  91   1          {
+  92   2                      v_char[7] = LedChar[voltage % 10];
+  93   2                      v_char[6] = LedChar[voltage / 10 % 10];
+  94   2                      v_char[5] = LedChar[voltage / 100] & 0x7F;
+  95   2              for(i = 0; i < 8; i++)
+  96   2                  LedBuff[i] = v_char[i];
+  97   2          } 
+  98   1          else if(show_mode == DISP_F)
+  99   1          {
+ 100   2              // 6位频率数字 (位置2~7)
+ 101   2              f_char[2] = LedChar[freq / 100000 % 10];
+ 102   2              f_char[3] = LedChar[freq / 10000 % 10];
+ 103   2              f_char[4] = LedChar[freq / 1000 % 10];
+ 104   2              f_char[5] = LedChar[freq / 100 % 10];
+ 105   2              f_char[6] = LedChar[freq / 10 % 10];
+ 106   2              f_char[7] = LedChar[freq % 10];
+ 107   2      
+ 108   2              // 前导零熄灭 (位置2~6, 位置7始终保留最低位)
+ 109   2              for(i = 2; i < 7; i++)
+ 110   2              {
+ 111   3                  if(f_char[i] != 0xC0) break;
+ 112   3                  else f_char[i] = 0xFF;
+ 113   3              }
+ 114   2              
+ 115   2              for(i = 0; i < 8; i++)
+ 116   2                  LedBuff[i] = f_char[i];
+C51 COMPILER V9.54   MAIN                                                                  06/27/2026 00:47:45 PAGE 3   
+
+ 117   2          } 
+ 118   1      }
+ 119          
+ 120          // ================= ADC采集 & 数据刷新 (每约250ms, <0.5s满足要求) =================
+ 121          void Adc_run(void)
+ 122          {
+ 123   1          if(v_cnt >= 500)
+ 124   1              {
+ 125   2                      v_cnt = 0;
+ 126   2                      EA = 0;
+ 127   2                       if(show_mode == DISP_V)
+ 128   2                      {
+ 129   3                      if(v_mode == 0)
+ 130   3                      {               
+ 131   4                              // 始终读取ADC，计算电压和频率
+ 132   4                              voltage = Get_ADC12bitResult(3);
+ 133   4                              voltage = (250UL * voltage) / 4096;          // 0~250 (0~2.50V)                         
+ 134   4                      }
+ 135   3                      else
+ 136   3                      {
+ 137   4                              voltage = 100;                           // 显示固定1.00V
+ 138   4                      }
+ 139   3                      }
+ 140   2                      else
+ 141   2                      {
+ 142   3                              voltage = Get_ADC12bitResult(3);
+ 143   3                              set_freq = (999999UL * voltage) / 4095UL; 
+ 144   3                              if(set_freq > 999999) set_freq = 999999;     // 钳位到0~999999
+ 145   3                              Timer2_SetFreq(set_freq);
+ 146   3                      }
+ 147   2      
+ 148   2                      EA = 1; 
+ 149   2              }
+ 150   1      }
+ 151          
+ 152          // ================= 按键处理 (S4~S7) =================
+ 153          void Key_Run(void)
+ 154          {
+ 155   1          key = Key_scan();
+ 156   1          switch(key) {
+ 157   2      
+ 158   2                      // S4: 显示界面切换 (电压<-->频率)
+ 159   2              case 4:show_mode = !show_mode;
+ 160   2                  break;
+ 161   2      
+ 162   2                      // S5: DAC模式切换 (跟随W2 <--> 固定1.0V)        
+ 163   2                      case 5:v_mode = !v_mode;
+ 164   2                  if(v_mode == 1) voltage = 100;     // 切到固定模式时显示1.00V
+ 165   2                  break;
+ 166   2      
+ 167   2                      // S6: LED指示灯开关
+ 168   2              case 6:led_mode = !led_mode;
+ 169   2                  break;
+ 170   2      
+ 171   2                      // S7: 数码管开关
+ 172   2              case 7:seg_mode = !seg_mode;
+ 173   2                  break;
+ 174   2      
+ 175   2              default: break; 
+ 176   2          }
+ 177   1      }
+ 178          
+C51 COMPILER V9.54   MAIN                                                                  06/27/2026 00:47:45 PAGE 4   
+
+ 179          // ================= LED指示灯 (P6口, 低电平点亮) =================
+ 180          // L1=P6.0: 电压测量指示    L2=P6.1: 频率测量指示
+ 181          // L3=P6.2: 电压阈值指示    L4=P6.3: 频率阈值指示
+ 182          // L5=P6.4: DAC模式指示    L6~L8: 未使用(始终熄灭)
+ 183          void Led_Run(void)
+ 184          {
+ 185   1          uint8_t led_val;
+ 186   1          
+ 187   1          if(led_mode == 1)
+ 188   1          {
+ 189   2              // LED功能关闭: 全部熄灭
+ 190   2              P6 = 0xFF;               // ★先清P6
+ 191   2              P40 = 1;                 // 再关LED电源(清空后再关, 防止段码闪一下)
+ 192   2              return;
+ 193   2          }
+ 194   1          
+ 195   1          // LED功能启用 (P7/P6/P40已在Timer0 ISR中处理好)
+ 196   1          led_val = 0xFF;              // 默认全部熄灭(bit=1灭, bit=0亮)
+ 197   1          
+ 198   1          // L1/L2: 显示模式指示
+ 199   1          if(show_mode == DISP_V)
+ 200   1              {
+ 201   2              led_val &= ~0x01;        // L1亮(电压模式), L2灭
+ 202   2                      // L3: 电压阈值指示
+ 203   2          // VW2<0.6V:灭, 0.6≤VW2<1.2V:亮, 1.2≤VW2<1.8V:灭, VW2≥1.8V:亮
+ 204   2          // voltage单位是10mV, 即阈值 60=0.6V, 120=1.2V, 180=1.8V
+ 205   2                              if((voltage >= 60 && voltage < 120) || (voltage >= 180))
+ 206   2                              led_val &= ~0x04;        // L3亮
+ 207   2          // L5: DAC模式指示 (VW2跟随模式亮, 固定1.0V模式灭)
+ 208   2          if(v_mode == 0)
+ 209   2              led_val &= ~0x10;        // L5亮(DAC跟随W2)
+ 210   2              }
+ 211   1      
+ 212   1          else
+ 213   1              {
+ 214   2                      led_val &= ~0x02;        // L2亮(频率模式), L1灭        
+ 215   2          // L4: 频率阈值指示
+ 216   2          // F<1KHz:灭, 1KHz≤F<5KHz:亮, 5KHz≤F<10KHz:灭, F≥10KHz:亮
+ 217   2          if((freq >= 1000 && freq < 5000) || (freq >= 10000))
+ 218   2              led_val &= ~0x08;        // L4亮
+ 219   2          }
+ 220   1          
+ 221   1          // L6~L8:熄灭
+ 222   1          P6 = led_val;
+ 223   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1082    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     35       1
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      4    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
