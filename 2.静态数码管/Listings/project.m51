@@ -1,0 +1,206 @@
+BL51 BANKED LINKER/LOCATER V6.22                                                        10/30/2025  09:40:02  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
+C:\KEIL_V51\C51\BIN\BL51.EXE .\Objects\main.obj, .\Objects\Nix.obj, .\Objects\Delay.obj TO .\Objects\project PRINT (.\Li
+>> stings\project.m51) RAMSIZE (256) DISABLEWARNING (16)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  .\Objects\main.obj (MAIN)
+  .\Objects\Nix.obj (NIX)
+  .\Objects\Delay.obj (DELAY)
+  C:\KEIL_V51\C51\LIB\C51S.LIB (?C_STARTUP)
+  C:\KEIL_V51\C51\LIB\C51S.LIB (?C?LLDIDATA)
+  C:\KEIL_V51\C51\LIB\C51S.LIB (?C_INIT)
+
+
+LINK MAP OF MODULE:  .\Objects\project (MAIN)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     0048H     UNIT         ?DT?NIX
+            IDATA   0050H     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+            CODE    0003H     008CH     UNIT         ?C_C51STARTUP
+            CODE    008FH     0067H     UNIT         ?PR?_NIX_TEXT?NIX
+            CODE    00F6H     004EH     UNIT         ?C_INITSEG
+            CODE    0144H     0049H     UNIT         ?PR?MAIN?MAIN
+            CODE    018DH     0012H     UNIT         ?PR?NIX_INIT?NIX
+            CODE    019FH     0010H     UNIT         ?PR?_DELAY_MS?DELAY
+            CODE    01AFH     000CH     UNIT         ?C?LIB_CODE
+
+
+
+OVERLAY MAP OF MODULE:   .\Objects\project (MAIN)
+
+
+SEGMENT
+  +--> CALLED SEGMENT
+---------------------
+?C_C51STARTUP
+  +--> ?PR?MAIN?MAIN
+  +--> ?C_INITSEG
+
+?PR?MAIN?MAIN
+  +--> ?PR?_NIX_TEXT?NIX
+
+?PR?_NIX_TEXT?NIX
+  +--> ?PR?NIX_INIT?NIX
+  +--> ?PR?_DELAY_MS?DELAY
+
+
+BL51 BANKED LINKER/LOCATER V6.22                                                      10/30/2025  09:40:02  PAGE 2
+
+
+
+SYMBOL TABLE OF MODULE:  .\Objects\project (MAIN)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        MAIN
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0080H         PUBLIC        P0
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  D:00C0H         PUBLIC        P4
+  D:00C8H         PUBLIC        P5
+  D:00E8H         PUBLIC        P6
+  D:00F8H         PUBLIC        P7
+  D:00A8H         PUBLIC        IE
+  D:00B8H         PUBLIC        IP
+  C:0144H         PUBLIC        main
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          MAIN
+  C:0144H         LINE#         5
+  C:0144H         LINE#         6
+  C:0144H         LINE#         8
+  C:0144H         LINE#         9
+  C:0144H         LINE#         11
+  C:014CH         LINE#         12
+  C:0155H         LINE#         13
+  C:015EH         LINE#         14
+  C:0167H         LINE#         15
+  C:0170H         LINE#         16
+  C:0179H         LINE#         17
+  C:0182H         LINE#         18
+  C:018BH         LINE#         28
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        MAIN
+
+  -------         MODULE        NIX
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0080H         PUBLIC        P0
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  D:00CCH         PUBLIC        P6M0
+  D:00C0H         PUBLIC        P4
+  D:00E2H         PUBLIC        P7M0
+  D:00CBH         PUBLIC        P6M1
+  D:00C8H         PUBLIC        P5
+  D:00E8H         PUBLIC        P6
+  D:00E1H         PUBLIC        P7M1
+  D:00F8H         PUBLIC        P7
+  D:00A8H         PUBLIC        IE
+  D:0008H         PUBLIC        T_COM
+  D:00B8H         PUBLIC        IP
+  C:018DH         PUBLIC        Nix_Init
+BL51 BANKED LINKER/LOCATER V6.22                                                      10/30/2025  09:40:02  PAGE 3
+
+
+  D:0010H         PUBLIC        Nix
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+  C:008FH         PUBLIC        _Nix_text
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          NIX_INIT
+  C:018DH         LINE#         13
+  C:018DH         LINE#         14
+  C:018DH         LINE#         15
+  C:0190H         LINE#         16
+  C:0193H         LINE#         17
+  C:0196H         LINE#         18
+  C:0198H         LINE#         20
+  C:019BH         LINE#         21
+  C:019EH         LINE#         22
+  -------         ENDPROC       NIX_INIT
+  -------         PROC          _NIX_TEXT
+  D:0007H         SYMBOL        digit
+  D:0004H         SYMBOL        Number
+  C:008FH         LINE#         24
+  C:008FH         LINE#         25
+  C:008FH         LINE#         26
+  C:0092H         LINE#         27
+  C:00BFH         LINE#         28
+  C:00BFH         LINE#         29
+  C:00C3H         LINE#         30
+  C:00C7H         LINE#         31
+  C:00CBH         LINE#         32
+  C:00CFH         LINE#         33
+  C:00D3H         LINE#         34
+  C:00D7H         LINE#         35
+  C:00DBH         LINE#         36
+  C:00E0H         LINE#         37
+  C:00E0H         LINE#         38
+  C:00E0H         LINE#         39
+  C:00E0H         LINE#         40
+  C:00EDH         LINE#         41
+  C:00F2H         LINE#         42
+  C:00F5H         LINE#         43
+  -------         ENDPROC       _NIX_TEXT
+  -------         ENDMOD        NIX
+
+  -------         MODULE        DELAY
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0080H         PUBLIC        P0
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  D:00C0H         PUBLIC        P4
+  D:00C8H         PUBLIC        P5
+  D:00E8H         PUBLIC        P6
+  D:00F8H         PUBLIC        P7
+  D:00A8H         PUBLIC        IE
+  D:00B8H         PUBLIC        IP
+  C:019FH         PUBLIC        _Delay_ms
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+BL51 BANKED LINKER/LOCATER V6.22                                                      10/30/2025  09:40:02  PAGE 4
+
+
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          _DELAY_MS
+  D:0007H         SYMBOL        ms
+  -------         DO            
+  D:0004H         SYMBOL        i
+  -------         ENDDO         
+  C:019FH         LINE#         3
+  C:019FH         LINE#         4
+  C:019FH         LINE#         6
+  C:019FH         LINE#         7
+  C:01A3H         LINE#         8
+  C:01ACH         LINE#         9
+  C:01AEH         LINE#         10
+  -------         ENDPROC       _DELAY_MS
+  -------         ENDMOD        DELAY
+
+  -------         MODULE        ?C?LLDIDATA
+  C:01AFH         PUBLIC        ?C?LLDIDATA
+  -------         ENDMOD        ?C?LLDIDATA
+
+Program Size: data=81.0 xdata=0 code=443
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)
