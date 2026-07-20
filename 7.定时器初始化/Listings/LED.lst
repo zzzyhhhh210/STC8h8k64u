@@ -1,0 +1,103 @@
+C51 COMPILER V9.54   LED                                                                   10/12/2025 22:29:01 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE LED
+OBJECT MODULE PLACED IN .\Objects\LED.obj
+COMPILER INVOKED BY: C:\Keil_v51\C51\BIN\C51.EXE LED.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\LED.
+                    -lst) OBJECT(.\Objects\LED.obj)
+
+line level    source
+
+   1          #include "LED.h"
+   2          #include "Delay.h"
+   3          #include "intrins.h"
+   4          
+   5          unsigned char LED[]={0xFE,0xFD,0xFB,0xF7,0xEF,0xDF,0xBF,0x7F};
+   6          unsigned char i,a,b,temp= 0x01;
+   7          
+   8          
+   9          void LED_Init(void)
+  10          {
+  11   1          P_SW2 |= 0x80; 
+  12   1      
+  13   1          P0M1 = 0x30;   P0M0 = 0x30;         //0011 0000 P0^4 P0^5 引脚 均为1，配置开漏输出 其余为0
+  14   1          P1M1 = 0x30;   P1M0 = 0x30;         //0011 0000 P1^4 P1^5 引脚 均为1，配置开漏输出 其余为0
+  15   1          P2M1 = 0x3c;   P2M0 = 0x3c;         //0011 1100 P2^2 P2^3 P2^4 P2^5引脚为1，开漏输出
+  16   1          P3M1 = 0x50;   P3M0 = 0x50;     //0101 0000 P3^4 模拟输入 P3^5 推挽输出     
+  17   1          P4M1 = 0x3c;   P4M0 = 0x3c;         //0011 1100 P4^2 P4^3 P4^4 P4^5引脚为1，开漏输出
+  18   1          P5M1 = 0x0c;   P5M0 = 0x0c;         //0000 1100     P5^2 P5^3 引脚 均为1，配置开漏输出 
+  19   1          P6M1 = 0x00;   P6M0 = 0x00;         //0000 0000 所有PxM1=0,PxM0=0,准双向口 
+  20   1          P7M1 = 0x00;   P7M0 = 0x00;         //0000 0000
+  21   1      
+  22   1          P40 = 0;            //LED Power On
+  23   1      
+  24   1      }
+  25          
+  26          void LED_Text1(void)
+  27          {
+  28   1              LED_Init();
+  29   1              P6 = 0xFF;
+  30   1              for(i = 0 ; i < 8 ; i++)
+  31   1              {
+  32   2                      P6 = ~(0x01<<i);
+  33   2                      Delay_ms(50);
+  34   2                      P6 = 0xFF;                      //所有位设为1
+  35   2                      Delay_ms(50);
+  36   2              }
+  37   1              Delay_ms(500);
+  38   1      }
+  39          
+  40          void LED_Text2(void)
+  41          {
+  42   1              LED_Init();
+  43   1              P6 = 0xFF;
+  44   1              for(b = 0 ; b < 8 ; b++)
+  45   1              {
+  46   2                      P6 = _cror_(0x7F,b);
+  47   2                      Delay_ms(100);
+  48   2              }
+  49   1              Delay_ms(500);
+  50   1      
+  51   1      }
+  52          
+  53          void LED_Text3(void)
+  54          {
+C51 COMPILER V9.54   LED                                                                   10/12/2025 22:29:01 PAGE 2   
+
+  55   1              LED_Init();
+  56   1              P6 = 0xFF;
+  57   1              for(a = 0 ; a < 8 ; a++)
+  58   1              {
+  59   2                      P6 = LED[a];
+  60   2                      Delay_ms(200);
+  61   2              }
+  62   1              Delay_ms(500);
+  63   1      }
+  64          
+  65          void LED_Text4(void)
+  66          { 
+  67   1              LED_Init();
+  68   1              P6 = 0xFF;
+  69   1              for(i=8; i>=0; i--)
+  70   1              {
+  71   2                  P6 = 0xFF;          
+  72   2                  P6 &= ~(1 << i);   
+  73   2                  Delay_ms(200);
+  74   2              }
+  75   1              Delay_ms(500);
+  76   1      
+  77   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    227    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     12    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
