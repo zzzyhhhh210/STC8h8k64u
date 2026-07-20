@@ -1,0 +1,24 @@
+C51 COMPILER V9.54   DS18B20                                                               06/27/2026 13:54:15 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DS18B20
+OBJECT MODULE PLACED IN .\DS18B20.obj
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE D:\ziniao\STC8H8K64U\大二实验\3.实验三
+                    -\0\DS18B20.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\DS18B20.lst) OBJECT(.\DS18B20.obj)
+
+line level    source
+
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    360    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      2       9
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       3
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
