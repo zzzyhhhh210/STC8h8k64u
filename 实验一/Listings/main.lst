@@ -1,0 +1,349 @@
+C51 COMPILER V9.54   MAIN                                                                  05/18/2026 10:03:49 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Users\Administrator\AppData\Local\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG 
+                    -OBJECTEXTEND PRINT(.\Listings\main.lst)
+
+line level    source
+
+   1          #include "main.h"
+   2          
+   3          // ================= 全局变量定义 =================
+   4          volatile uint8_t cnt = 0;    // 定时器计数，用于产生1s时基
+   5          
+   6          /*温度相关位缓存*/
+   7          volatile uint8_t List[] = {0, 0, 0};
+   8          volatile uint8_t clok_tmp[4] = {0x80, 0xbe, 0, 0XC6}; //配置温度显示
+   9          volatile uint16_t temp0 = 0; 
+  10          /* 按键与显示状态变量*/
+  11          unsigned char Key_Val, Key_Down, Key_Up, Key_Old; //消影
+  12          
+  13          /* RTC 相关 */
+  14          volatile uint8_t clok_time[8] = {0, 0, 0xbf, 0, 0, 0xbf, 0, 0};
+  15          volatile uint8_t Rtc_Save[3]={23,59,50};      // 时钟设置缓存: [0]=时, [1]=分, [2]=秒
+  16          uint8_t Rtc_flag = 0;         // 当前设置的索引: 0=时, 1=分, 2=秒
+  17          
+  18          /* 设置模式变量 */
+  19          volatile uint8_t mode = SHOW_CLOCK; // 默认状态：显示时钟
+  20          
+  21          /* 闹钟变量 */
+  22          volatile uint8_t Alarm_Save[3] = {0, 0, 0}; //初始闹钟时间00：00：00
+  23          volatile uint16_t Alarm_Timer_ms = 0; // 闹钟运行时间计时
+  24          volatile uint8_t Blink_State = 0;     // LED闪烁状态
+  25          volatile uint8_t Alarm_Blink_Cnt = 0; // 专门用于LED闪烁的计数器
+  26          
+  27          bit Alarm_Active = 0;  //0-闹钟关闭；1-开启闹钟 
+  28          bit Seg_Star_Flag; // 闪烁标志位: 由定时器中断每1秒翻转一次
+  29          bit shouldBlink;   // 0-亮，1-灭
+  30          // ================= 函数声明 =================
+  31          void Key_Proc();
+  32          void Display_Setting_With_Blink(void); 
+  33          void Alarm(void);
+  34          // ================= 主函数 =================
+  35          void main(void)
+  36          {
+  37   1          // 初始化
+  38   1          P_SW2 |= 0x80;
+  39   1          P5M1 = 0X00; P5M0 = 0X00; 
+  40   1          Nix_Init();                 
+  41   1          Key_Init();
+  42   1          DS18B20_Init();
+  43   1          I2C_Init(); 
+  44   1          Timer0_Init();              
+  45   1          RTC_config();
+  46   1          IE2 |= 0x20;  
+  47   1          EA = 1;
+  48   1          temp0 = Get18B20Temp();
+  49   1          Delay_ms(1000); 
+  50   1      
+  51   1          while (1)
+  52   1          {
+  53   2              Key_Proc();
+  54   2                      Alarm();
+C51 COMPILER V9.54   MAIN                                                                  05/18/2026 10:03:49 PAGE 2   
+
+  55   2              // 【修改点2】根据整合后的状态执行不同逻辑
+  56   2              switch (mode)
+  57   2              {
+  58   3                  case SHOW_CLOCK:                  
+  59   3                      Display_Clock();    // 正常每秒更新一次
+  60   3                      break;
+  61   3                      
+  62   3                  case SHOW_TEMP:
+  63   3                      Temperature_Scan(); // 假设此函数在其它文件中实现，负责显示温度
+  64   3                      break;
+  65   3                      
+  66   3                  case SET_CLOCK:
+  67   3                  case SET_ALARM:
+  68   3                      Display_Setting_With_Blink();
+  69   3                      break;
+  70   3                      
+  71   3                  default:
+  72   3                      mode = SHOW_CLOCK; // 异常状态复位
+  73   3                      break;
+  74   3              }
+  75   2          }
+  76   1      }
+  77          
+  78          // ================= 按键处理函数 =================
+  79          void Key_Proc()
+  80          { 
+  81   1          
+  82   1          Key_Val = Key_scan();
+  83   1          Key_Down = Key_Val & (~Key_Old); 
+  84   1          Key_Up = ~Key_Val & Key_Old;     
+  85   1          Key_Old = Key_Val;
+  86   1          
+  87   1          if (!Key_Down) return; // 无按键按下直接返回
+  88   1         
+  89   1          // 1.按键4用于切换时钟/温度
+  90   1          if ((mode == SHOW_CLOCK || mode == SHOW_TEMP) && Key_Down == 4)
+  91   1          {
+  92   2              if (mode == SHOW_CLOCK)
+  93   2                  mode = SHOW_TEMP;
+  94   2              else
+  95   2                  mode = SHOW_CLOCK;
+  96   2              return; 
+  97   2          }
+  98   1      
+  99   1              // 2. 进入设置模式
+ 100   1          if (mode == SHOW_CLOCK || mode == SHOW_TEMP)
+ 101   1          {
+ 102   2              if (Key_Down == 7) //进入时钟设置
+ 103   2              {
+ 104   3                  mode = SET_CLOCK;
+ 105   3                  Rtc_flag = 0; //小时
+ 106   3      
+ 107   3                  RTCCR = 0x00; // 停止 RTC           
+ 108   3                  // 从只读寄存器读取当前时间到缓存，以便基于当前时间修改
+ 109   3                  Rtc_Save[0] = HOUR; 
+ 110   3                  Rtc_Save[1] = MIN; 
+ 111   3                  Rtc_Save[2] = SEC;
+ 112   3              }
+ 113   2              else if (Key_Down == 6)//进入闹钟设置
+ 114   2              {
+ 115   3                  mode = SET_ALARM;
+ 116   3                  Rtc_flag = 0;//小时
+C51 COMPILER V9.54   MAIN                                                                  05/18/2026 10:03:49 PAGE 3   
+
+ 117   3              }
+ 118   2              return;
+ 119   2          }
+ 120   1      
+ 121   1          // 3. 在设置模式下操作
+ 122   1          switch (Key_Down) 
+ 123   1          {
+ 124   2              // ========== 按键7: 切换设置项 或 退出设置 ==========
+ 125   2              case 7: 
+ 126   2                  if (mode == SET_CLOCK)
+ 127   2                  {
+ 128   3                      if (Rtc_flag < 2) 
+ 129   3                      {
+ 130   4                          Rtc_flag++; 
+ 131   4                      }
+ 132   3                      else 
+ 133   3                      {
+ 134   4                          
+ 135   4                          // 1.停止RTC
+ 136   4                          RTCCR = 0x00;
+ 137   4      //                  RTCCFG |= 0x20; 
+ 138   4                                              //2.写入新时间到INI寄存器
+ 139   4                          INIHOUR = Rtc_Save[0];
+ 140   4                          INIMIN  = Rtc_Save[1];
+ 141   4                          INISEC  = Rtc_Save[2];                   
+ 142   4                          //关闭初始化使能（退出配置模式）
+ 143   4      //                                      RTCCFG &= ~0x20; 
+ 144   4                                              // 3.将 INI 寄存器值写入 RTC 计数器
+ 145   4                                              RTCCFG |= 0x01;//关键
+ 146   4                                              //清除所有RTC中断标志（避免旧中断触发异常）
+ 147   4      //                                      RTCIF = 0x00;
+ 148   4                          //4.重新启动RTC
+ 149   4                          RTCCR = 0x01;
+ 150   4                        
+ 151   4                          mode = SHOW_CLOCK; // 退出设置
+ 152   4                          Rtc_flag = 0;      // 重置标志
+ 153   4                      }
+ 154   3                  }
+ 155   2                  else if (mode == SET_ALARM)
+ 156   2                  {
+ 157   3                      // 闹钟设置逻辑：仅切换光标，超过秒则退出
+ 158   3                      if (++Rtc_flag > 2) 
+ 159   3                      { 
+ 160   4                          mode = SHOW_CLOCK; 
+ 161   4                          Rtc_flag = 0;   
+ 162   4                      }
+ 163   3                  }
+ 164   2                  break;
+ 165   2              case 6:
+ 166   2                   if (mode == SET_ALARM || mode == SET_CLOCK)
+ 167   2                   {
+ 168   3                       if (++Rtc_flag > 2) 
+ 169   3                       { 
+ 170   4                           mode = SHOW_CLOCK; 
+ 171   4                           Rtc_flag = 0;   
+ 172   4                       }
+ 173   3                   }
+ 174   2                   break;
+ 175   2      
+ 176   2            // ========== 按键5: 加 ==========
+ 177   2              case 5: 
+ 178   2                  if (mode == SET_CLOCK)
+C51 COMPILER V9.54   MAIN                                                                  05/18/2026 10:03:49 PAGE 4   
+
+ 179   2                  {
+ 180   3                      if (Rtc_flag == 0) // 时
+ 181   3                          Rtc_Save[0] = (Rtc_Save[0] >= 23) ? 0 : Rtc_Save[0] + 1;
+ 182   3                      else // 分或秒
+ 183   3                          Rtc_Save[Rtc_flag] = (Rtc_Save[Rtc_flag] >= 59) ? 0 : Rtc_Save[Rtc_flag] + 1;
+ 184   3                  }
+ 185   2                  else 
+ 186   2                  {
+ 187   3                      if (Rtc_flag == 0) // 时
+ 188   3                          Alarm_Save[0] = (Alarm_Save[0] >= 23) ? 0 : Alarm_Save[0] + 1;
+ 189   3                      else // 分或秒
+ 190   3                          Alarm_Save[Rtc_flag] = (Alarm_Save[Rtc_flag] >= 59) ? 0 : Alarm_Save[Rtc_flag] + 1;
+ 191   3                  }
+ 192   2                  break;
+ 193   2      
+ 194   2              // ========== 按键4: 减 ==========
+ 195   2              case 4: 
+ 196   2                  if (mode == SET_CLOCK)
+ 197   2                  {
+ 198   3                      if (Rtc_flag == 0) // 时
+ 199   3                          Rtc_Save[0] = (Rtc_Save[0] == 0) ? 23 : Rtc_Save[0] - 1;
+ 200   3                      else // 分或秒
+ 201   3                          Rtc_Save[Rtc_flag] = (Rtc_Save[Rtc_flag] == 0) ? 59 : Rtc_Save[Rtc_flag] - 1;
+ 202   3                  }
+ 203   2                  else
+ 204   2                  {
+ 205   3                      if (Rtc_flag == 0) // 时
+ 206   3                          Alarm_Save[0] = (Alarm_Save[0] == 0) ? 23 : Alarm_Save[0] - 1;
+ 207   3                      else // 分或秒
+ 208   3                          Alarm_Save[Rtc_flag] = (Alarm_Save[Rtc_flag] == 0) ? 59 : Alarm_Save[Rtc_flag] - 1;
+ 209   3                  }
+ 210   2                  break;
+ 211   2          }
+ 212   1      }
+ 213          
+ 214          // ================= 闹钟检测 =================
+ 215          void Alarm(void)
+ 216          {
+ 217   1          if (!Alarm_Active && HOUR == Alarm_Save[0] && MIN == Alarm_Save[1] && SEC == Alarm_Save[2])
+ 218   1          {
+ 219   2              Alarm_Active = 1;       
+ 220   2              Alarm_Timer_ms = 0;     
+ 221   2              Alarm_Blink_Cnt = 0;    // 重置闪烁计数
+ 222   2              LED_L1 = 0;             // 初始点亮 LED
+ 223   2              BUZZ = 0;            // 如果需要蜂鸣器响，在这里开启
+ 224   2          }
+ 225   1              // 任意键停止闹钟
+ 226   1          if (Alarm_Active && Key_Down) 
+ 227   1          {
+ 228   2              Alarm_Active = 0; 
+ 229   2                      LED_L1 = 1; 
+ 230   2                       BUZZ = 1;
+ 231   2              return;
+ 232   2          }
+ 233   1      }
+ 234          // ================= 屏幕闪烁显示设置界面 =================
+ 235          void Display_Setting_With_Blink(void)
+ 236          {
+ 237   1          unsigned char i;
+ 238   1          unsigned char buf[8];
+ 239   1          unsigned char h, m, s;
+ 240   1          unsigned char dataIndex;
+C51 COMPILER V9.54   MAIN                                                                  05/18/2026 10:03:49 PAGE 5   
+
+ 241   1          
+ 242   1          // 根据 mode 决定读取哪个数据源
+ 243   1          if (mode == SET_CLOCK) {
+ 244   2              h = Rtc_Save[0]; m = Rtc_Save[1]; s = Rtc_Save[2];
+ 245   2          } else { // SET_ALARM
+ 246   2              h = Alarm_Save[0]; m = Alarm_Save[1]; s = Alarm_Save[2];
+ 247   2          }    
+ 248   1          buf[0] = h / 10; buf[1] = h % 10;
+ 249   1          buf[3] = m / 10; buf[4] = m % 10; 
+ 250   1          buf[6] = s / 10; buf[7] = s % 10;
+ 251   1          buf[2] = 0xBF;buf[5] = 0xBF; // 显示分隔符 '-'
+ 252   1      
+ 253   1          for (i = 0; i < 8; i++)
+ 254   1          {
+ 255   2              P7 = _crol_(0xfe, i);     
+ 256   2              shouldBlink = 0; // 默认全亮       
+ 257   2              if (Rtc_flag == 0 && (i == 6 || i == 7)) shouldBlink = 1; // 时
+ 258   2              if (Rtc_flag == 1 && (i == 3 || i == 4)) shouldBlink = 1; // 分
+ 259   2              if (Rtc_flag == 2 && (i == 0 || i == 1)) shouldBlink = 1; // 秒      
+ 260   2              if (shouldBlink && Seg_Star_Flag == 0) 
+ 261   2                  P6 = 0xFF; // 熄灭，产生闪烁效果
+ 262   2              else 
+ 263   2              {
+ 264   3                  dataIndex = 7 - i;  
+ 265   3                  if (i == 2 || i == 5)
+ 266   3                      P6 = 0xBF; // 显示分隔符
+ 267   3                  else 
+ 268   3                  {
+ 269   4                       if (buf[dataIndex] <= 9)
+ 270   4                           P6 = Nix[buf[dataIndex]];
+ 271   4                       else
+ 272   4                           P6 = 0xFF;
+ 273   4                  }
+ 274   3              }
+ 275   2              
+ 276   2              Delay_us(500); 
+ 277   2              P6 = 0xFF;     
+ 278   2          }
+ 279   1      }
+ 280          
+ 281          // ================= 定时器中断 =================
+ 282          void Timer0_Isr(void) interrupt 1
+ 283          {
+ 284   1          TL0 = 0xB0; 
+ 285   1          TH0 = 0x3C;
+ 286   1      
+ 287   1          cnt++;
+ 288   1          if (cnt >= 10) //500ms
+ 289   1          {
+ 290   2              cnt = 0;
+ 291   2              Seg_Star_Flag = !Seg_Star_Flag; // 500ms翻转一次，用于闪烁
+ 292   2          }
+ 293   1              // --- 闹钟处理逻辑 ---
+ 294   1          if (Alarm_Active)
+ 295   1          {
+ 296   2              Alarm_Timer_ms += 50; // 累加总时间，用于判断5秒停止
+ 297   2              Alarm_Blink_Cnt++;
+ 298   2      
+ 299   2              if (Alarm_Blink_Cnt >= 4) 
+ 300   2              {
+ 301   3                  Alarm_Blink_Cnt = 0; // 重置计数器
+ 302   3                  LED_L1 = !LED_L1;    // 翻转 LED 状态
+C51 COMPILER V9.54   MAIN                                                                  05/18/2026 10:03:49 PAGE 6   
+
+ 303   3                               BUZZ = !BUZZ; 
+ 304   3              } 
+ 305   2              // --- 5秒自动停止逻辑 ---
+ 306   2              if (Alarm_Timer_ms >= 5000)
+ 307   2              {
+ 308   3                  Alarm_Active = 0;       // 关闭闹钟标志
+ 309   3                  Alarm_Timer_ms = 0;     // 重置总计时
+ 310   3                  Alarm_Blink_Cnt = 0;    // 重置闪烁计数
+ 311   3                  LED_L1 = 1;             // 确保 LED 熄灭 (假设高电平灭)
+ 312   3                  BUZZ = 1;               // 确保蜂鸣器停止
+ 313   3              }
+ 314   2          }
+ 315   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    880    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     34      12
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
