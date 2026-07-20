@@ -1,0 +1,8 @@
+"main.obj",
+"Delay.obj",
+"Timer.obj",
+"Nix.obj",
+"hw.obj" 
+TO "project" 
+PRINT(".\Listings\project.m51") RAMSIZE(256) 
+DISABLEWARNING (16) 
